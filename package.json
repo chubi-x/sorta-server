@@ -1,0 +1,16 @@
+{
+  "name": "sorta-server",
+  "version": "1.0.0",
+  "description": "backend for sorta",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "chubiyojo adejoh",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "twitter-api-v2": "^1.12.7"
+  }
+}
