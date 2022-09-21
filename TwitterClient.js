@@ -3,11 +3,10 @@ import {
 } from "twitter-api-v2";
 
 import {
-  appKey,
-  appSecret
+  config
 } from './config.js'
 
 export const userClient = new TwitterApi({
-  appKey,
-  appSecret
+  clientId: config.clientId,
+  clientSecret: config.clientSecret
 });
