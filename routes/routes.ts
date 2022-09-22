@@ -130,6 +130,29 @@ router.get("/me", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/bookmarks", async (req: Request, res: Response) => {});
+router.get("/bookmarks", async (req: Request, res: Response) => {
+  // retrieve the user username from the session store
+  const userId = req.session.userId;
+  // get a db ref
+  const userRef = firebaseDb.ref(`sorta/users/${userId}`);
+  userRef.on(
+    "value",
+    async (snapshot) => {
+      const accessToken = snapshot.val().accessToken;
+      const newTwitterClient = new TwitterApi(accessToken);
+      // get and return the users bookmarks
+
+      const bookmarks = await newTwitterClient.v2.bookmarks();
+      res.send(bookmarks);
+    },
+    (errorObj) => {
+      // TODO: log error to logging serivce
+      console.log(
+        "couldn't retrieve the data" + errorObj.name + errorObj.message
+      );
+      res.send("error could not retrieve your data. please try again.");
+    }
+  );
+});
 
 export { router };
