@@ -90,7 +90,6 @@ router.get("/me", async (req: Request, res: Response) => {
       client: loggedClient,
       accessToken,
       refreshToken,
-      expiresIn,
     } = await client.loginWithOAuth2({
       code,
       codeVerifier,
@@ -109,27 +108,28 @@ router.get("/me", async (req: Request, res: Response) => {
       },
       (err) => {
         if (err) {
-          // TODO: log user save data to logging service
+          // TODO: log user data to logging service
           console.log("Error saving new user" + err);
-          res.redirect("/authorize");
+          res.status(400).redirect("/authorize");
         }
         //TODO: log new user created to logging service
         console.log("successfully created new user!");
 
         // save the user id to the session store
         req.session.userId = user.data.id;
-        res.redirect("/bookmarks");
+        res.status(201).redirect("/bookmarks");
       }
     );
   } catch (err) {
     //  TODO:  return this to a logging service
     console.log(err);
     res
-      .status(403)
+      .status(400)
       .send("An error occured while logging you in. please try again. ");
   }
 });
 
+// get bookmark
 router.get("/bookmarks", async (req: Request, res: Response) => {
   // retrieve the user username from the session store
   const userId = req.session.userId;
@@ -141,9 +141,8 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
       const accessToken = snapshot.val().accessToken;
       const newTwitterClient = new TwitterApi(accessToken);
       // get and return the users bookmarks
-
       const bookmarks = await newTwitterClient.v2.bookmarks();
-      res.send(bookmarks);
+      res.status(200).send(bookmarks);
     },
     (errorObj) => {
       // TODO: log error to logging serivce
