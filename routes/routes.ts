@@ -103,29 +103,36 @@ router.get("/me", async (req: Request, res: Response) => {
         "user.fields": ["profile_image_url"],
       });
       // store access token and refresh token in firestore
-      //   TODO: ONLY CREATE USER IF THEY DON'T EXIST
-      usersRef.child(user.data.id).set(
-        {
-          username: user.data.username,
-          pfp: user.data.profile_image_url,
-          accessToken,
-          refreshToken,
-          tokenExpiresIn: expiresIn,
-        },
-        (err) => {
-          if (err) {
-            // TODO: log user data to logging service
-            console.log("Error saving new user" + err);
-            res.status(400).redirect("/authorize");
-          }
-          //TODO: log new user created to logging service
-          console.log("successfully created new user!");
+      const userIdRef = usersRef.child(user.data.id);
+      // ONLY CREATE USER IF THEY DON'T EXIST
+      userIdRef.once("value").then((snapshot) => {
+        if (snapshot.exists()) {
+          res.send("user already exists in db.");
+        } else {
+          userIdRef.set(
+            {
+              username: user.data.username,
+              pfp: user.data.profile_image_url,
+              accessToken,
+              refreshToken,
+              tokenExpiresIn: expiresIn,
+            },
+            (err) => {
+              if (err) {
+                // TODO: log user data to logging service
+                console.log("Error saving new user" + err);
+                res.status(400).redirect("/authorize");
+              }
+              //TODO: log new user created to logging service
+              console.log("successfully created new user!");
 
-          // save the user id to the session store
-          req.session.userId = user.data.id;
-          res.status(201).redirect("/bookmarks");
+              // save the user id to the session store
+              req.session.userId = user.data.id;
+              res.status(201).redirect("/bookmarks");
+            }
+          );
         }
-      );
+      });
     } catch (err) {
       //  TODO:  return this to a logging service
       console.log(err);
