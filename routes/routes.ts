@@ -142,7 +142,7 @@ router.get("/me", async (req: Request, res: Response) => {
         .send("An error occured while logging you in. please try again. ");
     }
   } else {
-    res.redirect(400, "/authorize");
+    res.redirect(511, "/authorize");
   }
 });
 
@@ -172,7 +172,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
       }
     );
   } else {
-    res.redirect(400, "/authorize");
+    res.redirect(511, "/authorize");
   }
 });
 // route to remove a bookmark
@@ -204,7 +204,7 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
     );
   } else {
     console.log("no session detected");
-    res.redirect(400, "/bookmarks");
+    res.redirect(511, "/bookmarks");
   }
 });
 
