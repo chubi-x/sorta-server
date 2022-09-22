@@ -9,7 +9,6 @@ import cookieParser from "cookie-parser";
 
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
-import { appendFile } from "fs";
 
 /**
  * TODO
@@ -26,14 +25,14 @@ const usersRef = firebaseDb.ref("sorta").child("users");
 dotenv.config();
 
 // cookie age
-const oneDay = 1000 * 60 * 60 * 24;
+const threeDays = 1000 * 60 * 60 * 72;
 // session middleware
 router.use(
   session({
     secret: process.env.SESSION_SECRET!,
     saveUninitialized: true,
     cookie: {
-      maxAge: oneDay,
+      maxAge: threeDays,
       httpOnly: false,
     },
     resave: false,
