@@ -1,12 +1,8 @@
-import {
-  TwitterApi
-} from "twitter-api-v2";
+import { TwitterApi } from "twitter-api-v2";
+import dotenv from "dotenv";
 
-import {
-  config
-} from './config.js'
-
+dotenv.config();
 export const userClient = new TwitterApi({
-  clientId: config.clientId,
-  clientSecret: config.clientSecret
+  clientId: process.env.CLIENT_ID!,
+  clientSecret: process.env.CLIENT_SECRET!,
 });
