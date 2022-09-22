@@ -4,6 +4,7 @@ import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types"
 declare module "express-session" {
   interface Session {
     oAuth: IOAuth2RequestTokenResult;
+    userId: string;
   }
 }
 declare module "qs" {
