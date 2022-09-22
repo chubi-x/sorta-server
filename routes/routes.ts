@@ -59,104 +59,127 @@ router.get("/authorize", async (req: Request, res: Response) => {
     console.log("could not generate auth link" + err);
   }
 });
+
 router.get("/me", async (req: Request, res: Response) => {
-  // get oauth token and verifier
-  const { state, code } = req.query;
-  // retrieve oath_token_secret from session store
-  const { codeVerifier, state: sessionState } = req.session.oAuth;
+  if (req.session.oAuth) {
+    // get oauth token and verifier
+    const { state, code } = req.query;
+    // retrieve oath_token_secret from session store
+    const { codeVerifier, state: sessionState } = req.session.oAuth;
 
-  // check if request was denied and do something
-  if (!codeVerifier || !state || !sessionState || !code) {
-    return res
-      .status(400)
-      .send(
-        "You denied the router or your session expired! Try logging in again."
-      );
-  }
-  if (state !== sessionState) {
-    return res
-      .status(400)
-      .send("Stored tokens didn't match! Try logging in again.");
-  }
-  //get persistent access tokens
-  // create a client from temporary tokens
-  const client = new TwitterApi({
-    clientId: process.env.CLIENT_ID!,
-    clientSecret: process.env.CLIENT_SECRET!,
-  });
+    // check if request was denied and do something
+    if (!codeVerifier || !state || !sessionState || !code) {
+      return res
+        .status(400)
+        .send(
+          "You denied the router or your session expired! Try logging in again."
+        );
+    }
+    if (state !== sessionState) {
+      return res
+        .status(400)
+        .send("Stored tokens didn't match! Try logging in again.");
+    }
+    //get persistent access tokens
+    // create a client from temporary tokens
+    const client = new TwitterApi({
+      clientId: process.env.CLIENT_ID!,
+      clientSecret: process.env.CLIENT_SECRET!,
+    });
 
-  try {
-    const {
-      client: loggedClient,
-      accessToken,
-      refreshToken,
-      expiresIn,
-    } = await client.loginWithOAuth2({
-      code,
-      codeVerifier,
-      redirectUri: "http://localhost:3000/me",
-    });
-    const user = await loggedClient.v2.me({
-      "user.fields": ["profile_image_url"],
-    });
-    // store access token and refresh token in firestore
-    usersRef.child(user.data.id).set(
-      {
-        username: user.data.username,
-        pfp: user.data.profile_image_url,
+    try {
+      const {
+        client: loggedClient,
         accessToken,
         refreshToken,
-        tokenExpiresIn: expiresIn,
-      },
-      (err) => {
-        if (err) {
-          // TODO: log user data to logging service
-          console.log("Error saving new user" + err);
-          res.status(400).redirect("/authorize");
-        }
-        //TODO: log new user created to logging service
-        console.log("successfully created new user!");
+        expiresIn,
+      } = await client.loginWithOAuth2({
+        code,
+        codeVerifier,
+        redirectUri: "http://localhost:3000/me",
+      });
+      const user = await loggedClient.v2.me({
+        "user.fields": ["profile_image_url"],
+      });
+      // store access token and refresh token in firestore
+      //   TODO: ONLY CREATE USER IF THEY DON'T EXIST
+      usersRef.child(user.data.id).set(
+        {
+          username: user.data.username,
+          pfp: user.data.profile_image_url,
+          accessToken,
+          refreshToken,
+          tokenExpiresIn: expiresIn,
+        },
+        (err) => {
+          if (err) {
+            // TODO: log user data to logging service
+            console.log("Error saving new user" + err);
+            res.status(400).redirect("/authorize");
+          }
+          //TODO: log new user created to logging service
+          console.log("successfully created new user!");
 
-        // save the user id to the session store
-        req.session.userId = user.data.id;
-        res.status(201).redirect("/bookmarks");
-      }
-    );
-  } catch (err) {
-    //  TODO:  return this to a logging service
-    console.log(err);
-    res
-      .status(400)
-      .send("An error occured while logging you in. please try again. ");
+          // save the user id to the session store
+          req.session.userId = user.data.id;
+          res.status(201).redirect("/bookmarks");
+        }
+      );
+    } catch (err) {
+      //  TODO:  return this to a logging service
+      console.log(err);
+      res
+        .status(400)
+        .send("An error occured while logging you in. please try again. ");
+    }
+  } else {
+    res.status(400).redirect("/authorize");
   }
 });
 
 // get bookmark
 router.get("/bookmarks", async (req: Request, res: Response) => {
   // retrieve the user username from the session store
-  const userId = req.session.userId;
-  // get a db ref
-  const userRef = firebaseDb.ref(`sorta/users/${userId}`);
-  userRef.on(
-    "value",
-    async (snapshot) => {
-      const accessToken = snapshot.val().accessToken;
-      const newTwitterClient = new TwitterApi(accessToken);
-      // get and return the users bookmarks
-      const bookmarks = await newTwitterClient.v2.bookmarks();
-      res.status(200).send(bookmarks);
-    },
-    (errorObj) => {
-      // TODO: log error to logging serivce
-      console.log(
-        "couldn't retrieve the data" + errorObj.name + errorObj.message
-      );
-      res.send("error could not retrieve your data. please try again.");
-    }
-  );
+  if (req.session.userId) {
+    const userId = req.session.userId;
+    // get a db ref
+    const userRef = firebaseDb.ref(`sorta/users/${userId}`);
+    userRef.on(
+      "value",
+      async (snapshot) => {
+        const accessToken = snapshot.val().accessToken;
+        const newTwitterClient = new TwitterApi(accessToken);
+        // get and return the users bookmarks
+        const bookmarks = await newTwitterClient.v2.bookmarks();
+        res.status(200).send(bookmarks);
+      },
+      (errorObj) => {
+        // TODO: log error to logging serivce
+        console.log(
+          "couldn't retrieve the data" + errorObj.name + errorObj.message
+        );
+        res.send("error could not retrieve your data. please try again.");
+      }
+    );
+  } else {
+    res.status(400).redirect("/authorize");
+  }
 });
 // route to remove a bookmark
-router.delete("/bookmark/:id", (req: Request, res: Response) => {});
+// router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
+//     //TODO :  catch errors
+//   const tweetId = req.params.tweet_id;
+//   const userId = req.session.userId;
+//   // get a db ref
+//   const userRef = firebaseDb.ref(`sorta/users/${userId}`);
+//   userRef.on("value", (snapshot) => {
+//     const accessToken = snapshot.val().accessToken;
+//     const newTwitterClient = new TwitterApi(accessToken);
+//     newTwitterClient.v2.deleteBookmark(tweetId);
+//     res.status(200).send("bookmark deleted successfully!");
+//   });
+// });
+
 // route to create a category
 // route to update a category (including adding a bookmark to it)
 // route to delete a category
