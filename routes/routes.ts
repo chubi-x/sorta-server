@@ -90,6 +90,7 @@ router.get("/me", async (req: Request, res: Response) => {
       client: loggedClient,
       accessToken,
       refreshToken,
+      expiresIn,
     } = await client.loginWithOAuth2({
       code,
       codeVerifier,
@@ -105,6 +106,7 @@ router.get("/me", async (req: Request, res: Response) => {
         pfp: user.data.profile_image_url,
         accessToken,
         refreshToken,
+        tokenExpiresIn: expiresIn,
       },
       (err) => {
         if (err) {
@@ -154,6 +156,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
   );
 });
 // route to remove a bookmark
+router.delete("/bookmark/:id", (req: Request, res: Response) => {});
 // route to create a category
 // route to update a category (including adding a bookmark to it)
 // route to delete a category
