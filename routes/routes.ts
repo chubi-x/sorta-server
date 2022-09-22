@@ -12,9 +12,13 @@ import { firebaseDb } from "../auth/firebase";
 
 /**
  * TODO
- *  1- render error html before redirecting
- * 2- for every route that goes to db for access token, check if it has expired.
- *    if it has, use the refresh token to get a new access token then save the new access and refresh tokens to db
+ * - route to get user info from db
+ *  - render error html before redirecting
+ * - for every route that goes to db for access token, check if it has expired.
+ *    if it has, use the refresh token to get a new access token
+ *    then save the new access and refresh tokens to db
+ * - figure out how to use pagination to get all user bookmarks
+ * - always check if user exists in db before running any db logic
  */
 
 const router: Router = express.Router();
@@ -215,6 +219,14 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
 });
 
 // route to create a category
+router.post("/category/:name/:description", (req: Request, res: Response) => {
+  //check for a session
+  // create storage instance for image
+  // check if user exists in db, retrieve user from db
+  // create an object in category route with request parameters,
+  //let image key reference be firebase storage link
+  // else redirect back to authorize
+});
 // route to update a category (including adding a bookmark to it)
 // route to delete a category
 export { router };
