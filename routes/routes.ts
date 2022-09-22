@@ -56,6 +56,7 @@ router.get("/authorize", async (req: Request, res: Response) => {
     res.status(200).send({ url: req.session.oAuth.url });
   } catch (err) {
     //  TODO:  return the error to a logging service
+    res.status(400).send("could not generate auth link");
     console.log("could not generate auth link" + err);
   }
 });
