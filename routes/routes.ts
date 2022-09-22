@@ -154,5 +154,8 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
     }
   );
 });
-
+// route to remove a bookmark
+// route to create a category
+// route to update a category (including adding a bookmark to it)
+// route to delete a category
 export { router };
