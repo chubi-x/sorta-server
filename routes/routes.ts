@@ -12,18 +12,7 @@ import { firebaseDb } from "../auth/firebase";
 
 const router: Router = express.Router();
 // initialize firebase db
-const dbRef = firebaseDb.ref("sorta");
-const usersRef = dbRef.child("users");
-
-// const newUser = usersRef.set({
-//   name: "user",
-//   age: 23,
-// });
-
-// const userKey = newUser.key;
-// usersRef.child(userKey!).update({
-//   key: userKey,
-// });
+const usersRef = firebaseDb.ref("sorta").child("users");
 
 // configure env variable
 dotenv.config();
@@ -37,6 +26,7 @@ router.use(
     saveUninitialized: true,
     cookie: {
       maxAge: oneDay,
+      httpOnly: false,
     },
     resave: false,
   })
@@ -45,7 +35,7 @@ router.use(
 router.use(cookieParser());
 
 router.get("/", (req: Request, res: Response) => {
-  res.send("landing page");
+  res.redirect("/authorize");
 });
 
 router.get("/authorize", async (req: Request, res: Response) => {
@@ -63,7 +53,7 @@ router.get("/authorize", async (req: Request, res: Response) => {
     req.session.oAuth = {
       ...authLink,
     };
-    res.send(req.session);
+    res.status(200).send(req.session);
   } catch (err) {
     //  TODO:  return the error to a logging service
     console.log("could not generate auth link" + err);
@@ -106,25 +96,40 @@ router.get("/me", async (req: Request, res: Response) => {
       codeVerifier,
       redirectUri: "http://localhost:3000/me",
     });
-    const user = await loggedClient.v2.me();
-    // store access token and refresh token in firestore
-    const newUser = usersRef.push({
-      ...user.data,
-      accessToken,
-      refreshToken,
+    const user = await loggedClient.v2.me({
+      "user.fields": ["profile_image_url"],
     });
-    res.send({ user: user.data });
+    // store access token and refresh token in firestore
+    usersRef.child(user.data.id).set(
+      {
+        username: user.data.username,
+        pfp: user.data.profile_image_url,
+        accessToken,
+        refreshToken,
+      },
+      (err) => {
+        if (err) {
+          // TODO: log user save data to logging service
+          console.log("Error saving new user" + err);
+          res.redirect("/authorize");
+        }
+        //TODO: log new user created to logging service
+        console.log("successfully created new user!");
+
+        // save the user id to the session store
+        req.session.userId = user.data.id;
+        res.redirect("/bookmarks");
+      }
+    );
   } catch (err) {
     //  TODO:  return this to a logging service
     console.log(err);
-    res.status(403).send("invalid verifier or access tokens!");
+    res
+      .status(403)
+      .send("An error occured while logging you in. please try again. ");
   }
 });
 
-router.get("/bookmarks", async (req: Request, res: Response) => {
-  //   const newClient = new TwitterApi(access);
-  //   console.log(await newClient.v2.me());
-  res.send("hi");
-});
+router.get("/bookmarks", async (req: Request, res: Response) => {});
 
 export { router };
