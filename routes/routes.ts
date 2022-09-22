@@ -128,7 +128,7 @@ router.get("/me", async (req: Request, res: Response) => {
 
               // save the user id to the session store
               req.session.userId = user.data.id;
-              res.status(201).redirect("/bookmarks");
+              res.redirect(201, "/bookmarks");
             }
           );
         }
@@ -141,7 +141,7 @@ router.get("/me", async (req: Request, res: Response) => {
         .send("An error occured while logging you in. please try again. ");
     }
   } else {
-    res.status(400).redirect("/authorize");
+    res.redirect(400, "/authorize");
   }
 });
 
@@ -171,7 +171,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
       }
     );
   } else {
-    res.status(400).redirect("/authorize");
+    res.redirect(400, "/authorize");
   }
 });
 // route to remove a bookmark
@@ -192,7 +192,7 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
     });
   } else {
     console.log("no session detected");
-    res.status(400).redirect("/bookmarks");
+    res.redirect(400, "/bookmarks");
   }
 });
 
