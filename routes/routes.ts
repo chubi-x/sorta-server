@@ -10,6 +10,7 @@ import cookieParser from "cookie-parser";
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
 
+// TODO: render error html before redirecting
 const router: Router = express.Router();
 // initialize firebase db
 const usersRef = firebaseDb.ref("sorta").child("users");
@@ -176,20 +177,31 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
 });
 // route to remove a bookmark
 router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
-  //TODO :  catch errors
   // check if user has a session
   if (req.session.userId) {
     const tweetId = req.params.tweet_id;
     const userId = req.session.userId;
     // get a db ref
     const userRef = firebaseDb.ref(`sorta/users/${userId}`);
-    userRef.on("value", (snapshot) => {
-      const accessToken = snapshot.val().accessToken;
-      const newTwitterClient = new TwitterApi(accessToken);
-      newTwitterClient.v2.deleteBookmark(tweetId);
-      console.log("bookmark deleted successfully");
-      res.status(200).send({ message: "bookmark deleted successfully!" });
-    });
+    userRef.on(
+      "value",
+      (snapshot) => {
+        const accessToken = snapshot.val().accessToken;
+        const newTwitterClient = new TwitterApi(accessToken);
+        newTwitterClient.v2.deleteBookmark(tweetId);
+        console.log("bookmark deleted successfully");
+        res.status(200).send({ message: "bookmark deleted successfully!" });
+      },
+      (errorObject) => {
+        //TODO : send errors to logging service
+        console.log(
+          `an error occured while deleting a bookmark. \n${errorObject.name} \n ${errorObject.message}`
+        );
+        res
+          .status(400)
+          .send("an error occured while deleting for your bookmark.");
+      }
+    );
   } else {
     console.log("no session detected");
     res.redirect(400, "/bookmarks");
