@@ -175,19 +175,26 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
   }
 });
 // route to remove a bookmark
-// router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
-//     //TODO :  catch errors
-//   const tweetId = req.params.tweet_id;
-//   const userId = req.session.userId;
-//   // get a db ref
-//   const userRef = firebaseDb.ref(`sorta/users/${userId}`);
-//   userRef.on("value", (snapshot) => {
-//     const accessToken = snapshot.val().accessToken;
-//     const newTwitterClient = new TwitterApi(accessToken);
-//     newTwitterClient.v2.deleteBookmark(tweetId);
-//     res.status(200).send("bookmark deleted successfully!");
-//   });
-// });
+router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
+  //TODO :  catch errors
+  // check if user has a session
+  if (req.session.userId) {
+    const tweetId = req.params.tweet_id;
+    const userId = req.session.userId;
+    // get a db ref
+    const userRef = firebaseDb.ref(`sorta/users/${userId}`);
+    userRef.on("value", (snapshot) => {
+      const accessToken = snapshot.val().accessToken;
+      const newTwitterClient = new TwitterApi(accessToken);
+      newTwitterClient.v2.deleteBookmark(tweetId);
+      console.log("bookmark deleted successfully");
+      res.status(200).send({ message: "bookmark deleted successfully!" });
+    });
+  } else {
+    console.log("no session detected");
+    res.status(400).redirect("/bookmarks");
+  }
+});
 
 // route to create a category
 // route to update a category (including adding a bookmark to it)
