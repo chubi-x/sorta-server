@@ -9,8 +9,15 @@ import cookieParser from "cookie-parser";
 
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
+import { appendFile } from "fs";
 
-// TODO: render error html before redirecting
+/**
+ * TODO
+ *  1- render error html before redirecting
+ * 2- for every route that goes to db for access token, check if it has expired.
+ *    if it has, use the refresh token to get a new access token then save the new access and refresh tokens to db
+ */
+
 const router: Router = express.Router();
 // initialize firebase db
 const usersRef = firebaseDb.ref("sorta").child("users");
@@ -146,7 +153,7 @@ router.get("/me", async (req: Request, res: Response) => {
   }
 });
 
-// get bookmark
+// get bookmarks
 router.get("/bookmarks", async (req: Request, res: Response) => {
   // route only works if user has a session
   if (req.session.userId) {
