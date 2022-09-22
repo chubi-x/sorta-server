@@ -147,8 +147,9 @@ router.get("/me", async (req: Request, res: Response) => {
 
 // get bookmark
 router.get("/bookmarks", async (req: Request, res: Response) => {
-  // retrieve the user username from the session store
+  // route only works if user has a session
   if (req.session.userId) {
+    // retrieve the user username from the session store
     const userId = req.session.userId;
     // get a db ref
     const userRef = firebaseDb.ref(`sorta/users/${userId}`);
