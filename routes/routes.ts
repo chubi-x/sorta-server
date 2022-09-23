@@ -107,7 +107,10 @@ router.get("/me", async (req: Request, res: Response) => {
       // ONLY CREATE USER IF THEY DON'T EXIST
       userIdRef.once("value").then((snapshot) => {
         if (snapshot.exists()) {
-          res.send("user already exists in db.");
+          // save the user id to the session store
+          req.session.userId = user.data.id;
+
+          res.redirect("/bookmarks");
         } else {
           userIdRef.set(
             {
@@ -208,14 +211,19 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
 });
 
 // route to create a category
-router.post("/category/:name/:description", (req: Request, res: Response) => {
-  //check for a session
-  // create storage instance for image
-  // check if user exists in db, retrieve user from db
-  // create an object in category route with request parameters,
-  //let image key reference be firebase storage link
-  // else redirect back to authorize
-});
+// router.post("/category", (req: Request, res: Response) => {
+//   //check for a session
+//   if (req.session.userId) {
+//     const userId = req.session.userId;
+//     // retrieve user from db
+//     const userIdRef = usersRef.child(userId);
+//     userIdRef.push(req.body);
+//     // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
+//   } else {
+//     // else redirect back to authorize
+//     res.redirect(511, "/authorize");
+//   }
+// });
 // route to update a category (including adding a bookmark to it)
 // route to delete a category
 export { router };
