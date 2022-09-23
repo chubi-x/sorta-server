@@ -240,45 +240,6 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
 // route to create a category
 router.post("/category", async (req: Request, res: Response) => {
   //check for a session
-  if (req.session.userId) {
-    const userId = req.session.userId;
-    // retrieve user from db
-    const categoryRef = usersRef.child(userId).child("categories");
-    const categoryId = nanoid();
-    // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
-    await categoryRef.child(categoryId).set(
-      {
-        id: categoryId,
-        name: req.body.name,
-        description: req.body.description,
-        image: req.body.image,
-      },
-      (err) => {
-        if (err) {
-          //TODO: Log to logging service
-          console.log(`error creating category \n ${err}`);
-          return res.status(409).send("error creating category");
-        }
-      }
-    );
-    categoryRef.on(
-      "value",
-      (snapshot) => {
-        const category = snapshot.val()[categoryId];
-        return res.status(201).json({ category });
-      },
-      (errObject) => {
-        // TODO: log to logging service
-        console.log(
-          `error retrieving the new category \n ${errObject.name} : ${errObject.message}`
-        );
-        return res.status(409).end("error retrieving the new category");
-      }
-    );
-  } else {
-    // else redirect back to authorize
-    return res.redirect(303, "/authorize");
-  }
 });
 // route to update a category (including adding a bookmark to it)
 // route to delete a category
