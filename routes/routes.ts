@@ -107,9 +107,14 @@ router.get("/me", async (req: Request, res: Response) => {
       // ONLY CREATE USER IF THEY DON'T EXIST
       userIdRef.once("value").then((snapshot) => {
         if (snapshot.exists()) {
+          // update their access and refresh tokens in the db
+          userIdRef.update({
+            accessToken,
+            refreshToken,
+            expiresIn,
+          });
           // save the user id to the session store
           req.session.userId = user.data.id;
-
           res.redirect("/bookmarks");
         } else {
           userIdRef.set(
@@ -159,6 +164,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
     userIdRef.on(
       "value",
       async (snapshot) => {
+        // get user access token
         const accessToken = snapshot.val().accessToken;
         try {
           const newTwitterClient = new TwitterApi(accessToken);
