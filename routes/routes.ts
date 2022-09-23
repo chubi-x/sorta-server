@@ -157,6 +157,7 @@ router.get("/me", async (req: Request, res: Response) => {
 router.get("/bookmarks", async (req: Request, res: Response) => {
   // route only works if user has a session
   if (req.session.userId) {
+    console.log("a session was found!");
     // retrieve the user username from the session store
     const userId = req.session.userId;
     // get a db ref
@@ -190,6 +191,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
       }
     );
   } else {
+    console.log("session expired. reauthorize.");
     res.redirect(511, "/authorize");
   }
 });
