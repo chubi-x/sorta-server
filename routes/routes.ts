@@ -28,7 +28,7 @@ router.use(
       maxAge: threeDays,
       httpOnly: false,
     },
-    resave: false,
+    resave: true,
   })
 );
 // set cookie parser
