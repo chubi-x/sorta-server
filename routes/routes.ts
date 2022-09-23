@@ -185,7 +185,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
       (errorObj) => {
         // TODO: log error to logging serivce
         console.log(
-          "couldn't retrieve the data" + errorObj.name + errorObj.message
+          "couldn't retrieve the data \n" + errorObj.name + errorObj.message
         );
         res.send("error could not retrieve your data. please try again.");
       }
@@ -241,9 +241,35 @@ router.post("/category", (req: Request, res: Response) => {
   if (req.session.userId) {
     const userId = req.session.userId;
     // retrieve user from db
-    const userIdRef = usersRef.child(userId);
-    userIdRef.push(req.body);
+    const categoryRef = usersRef.child(userId).child("categories");
     // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
+    const category = categoryRef.push();
+    const categoryKey = category.key;
+    category.set(
+      {
+        name: req.body.name,
+        description: req.body.description,
+        image: req.body.image,
+      },
+      (err) => {
+        //TODO: Log to logging service
+        console.log(`error creating category \n ${err}`);
+        res.status(409).send("error creating category");
+      }
+    );
+    categoryRef.child(categoryKey!).on(
+      "value",
+      (snapshot) => {
+        res.status(201).json({ id: categoryKey, data: snapshot.val() });
+      },
+      (errObject) => {
+        // TODO: log to logging service
+        console.log(
+          `error retrieving the new category \n ${errObject.name} : ${errObject.message}`
+        );
+        res.status(409).send("error retrieving the new category");
+      }
+    );
   } else {
     // else redirect back to authorize
     res.redirect(303, "/authorize");
