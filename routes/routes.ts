@@ -113,7 +113,7 @@ router.get("/me", async (req: Request, res: Response) => {
             refreshToken,
             expiresIn,
           });
-          // save the user id to the session store
+          // save the user id to the session store and redirect to bookmarks
           req.session.userId = user.data.id;
           res.redirect("/bookmarks");
         } else {
