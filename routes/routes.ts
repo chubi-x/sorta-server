@@ -111,7 +111,7 @@ router.get("/me", async (req: Request, res: Response) => {
           userIdRef.update({
             accessToken,
             refreshToken,
-            expiresIn,
+            tokenExpiresIn: expiresIn,
           });
           // save the user id to the session store and redirect to bookmarks
           req.session.userId = user.data.id;
