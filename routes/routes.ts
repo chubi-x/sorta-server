@@ -160,10 +160,17 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
       "value",
       async (snapshot) => {
         const accessToken = snapshot.val().accessToken;
-        const newTwitterClient = new TwitterApi(accessToken);
-        // get and return the users bookmarks
-        const bookmarks = await newTwitterClient.v2.bookmarks();
-        res.status(200).send(bookmarks);
+        try {
+          const newTwitterClient = new TwitterApi(accessToken);
+          // get and return the users bookmarks
+          const bookmarks = await newTwitterClient.v2.bookmarks();
+          res.status(200).send(bookmarks);
+        } catch (err) {
+          // TODO: log error to logging service
+          console.error(err);
+          // redirect to authorize
+          res.redirect(511, "/authorize");
+        }
       },
       (errorObj) => {
         // TODO: log error to logging serivce
@@ -189,10 +196,17 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
       "value",
       (snapshot) => {
         const accessToken = snapshot.val().accessToken;
-        const newTwitterClient = new TwitterApi(accessToken);
-        newTwitterClient.v2.deleteBookmark(tweetId);
-        console.log("bookmark deleted successfully");
-        res.status(200).send({ message: "bookmark deleted successfully!" });
+        try {
+          const newTwitterClient = new TwitterApi(accessToken);
+          newTwitterClient.v2.deleteBookmark(tweetId);
+          console.log("bookmark deleted successfully");
+          res.status(200).send({ message: "bookmark deleted successfully!" });
+        } catch (err) {
+          // TODO: log error to logging service
+          console.error(err);
+          // redirect to authorize
+          res.redirect(511, "/authorize");
+        }
       },
       (errorObject) => {
         //TODO : send errors to logging service
