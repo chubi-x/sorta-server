@@ -1,5 +1,4 @@
-import express, { Request, Response } from "express";
-import { Router } from "express";
+import express, { Request, Response, Router } from "express";
 import { TwitterApi } from "twitter-api-v2";
 import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types";
 import dotenv from "dotenv";
@@ -245,6 +244,7 @@ router.post("/category", (req: Request, res: Response) => {
     // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
     const category = categoryRef.push();
     const categoryKey = category.key;
+    console.log(req.body);
     category.set(
       {
         name: req.body.name,
