@@ -165,12 +165,15 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
       "value",
       async (snapshot) => {
         // get user access token
-        const accessToken = snapshot.val().accessToken;
+        const user = snapshot.val();
+        const accessToken = user.accessToken;
         try {
           const newTwitterClient = new TwitterApi(accessToken);
           // get and return the users bookmarks
           const bookmarks = await newTwitterClient.v2.bookmarks();
-          res.status(200).send(bookmarks);
+          delete user.accessToken;
+          delete user.refreshToken;
+          res.status(200).send({ user, bookmarks });
         } catch (err) {
           // TODO: log error to logging service
           console.error(err);
