@@ -174,7 +174,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
           const bookmarks = await newTwitterClient.v2.bookmarks();
           delete user.accessToken;
           delete user.refreshToken;
-          res.status(200).send({ user, bookmarks });
+          res.status(200).json({ user, bookmarks });
         } catch (err) {
           // TODO: log error to logging service
           console.error(err);
@@ -211,7 +211,7 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
           const newTwitterClient = new TwitterApi(accessToken);
           newTwitterClient.v2.deleteBookmark(tweetId);
           console.log("bookmark deleted successfully");
-          res.status(200).send({ message: "bookmark deleted successfully!" });
+          res.status(200).json({ message: "bookmark deleted successfully!" });
         } catch (err) {
           // TODO: log error to logging service
           console.error(err);
@@ -236,19 +236,19 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
 });
 
 // route to create a category
-// router.post("/category", (req: Request, res: Response) => {
-//   //check for a session
-//   if (req.session.userId) {
-//     const userId = req.session.userId;
-//     // retrieve user from db
-//     const userIdRef = usersRef.child(userId);
-//     userIdRef.push(req.body);
-//     // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
-//   } else {
-//     // else redirect back to authorize
-//     res.redirect(303, "/authorize");
-//   }
-// });
+router.post("/category", (req: Request, res: Response) => {
+  //check for a session
+  if (req.session.userId) {
+    const userId = req.session.userId;
+    // retrieve user from db
+    const userIdRef = usersRef.child(userId);
+    userIdRef.push(req.body);
+    // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
+  } else {
+    // else redirect back to authorize
+    res.redirect(303, "/authorize");
+  }
+});
 // route to update a category (including adding a bookmark to it)
 // route to delete a category
 export { router };
