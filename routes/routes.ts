@@ -149,7 +149,7 @@ router.get("/me", async (req: Request, res: Response) => {
         .send("An error occured while logging you in. please try again. ");
     }
   } else {
-    res.redirect(511, "/authorize");
+    res.redirect(303, "/authorize");
   }
 });
 
@@ -179,7 +179,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
           // TODO: log error to logging service
           console.error(err);
           // redirect to authorize
-          res.redirect(511, "/authorize");
+          res.redirect(303, "/authorize");
         }
       },
       (errorObj) => {
@@ -192,7 +192,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
     );
   } else {
     console.log("session expired. reauthorize.");
-    res.redirect(511, "/authorize");
+    res.redirect(303, "/authorize");
   }
 });
 // route to remove a bookmark
@@ -216,7 +216,7 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
           // TODO: log error to logging service
           console.error(err);
           // redirect to authorize
-          res.redirect(511, "/authorize");
+          res.redirect(303, "/authorize");
         }
       },
       (errorObject) => {
@@ -231,7 +231,7 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
     );
   } else {
     console.log("no session detected");
-    res.redirect(511, "/bookmarks");
+    res.redirect(303, "/bookmarks");
   }
 });
 
@@ -246,7 +246,7 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
 //     // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
 //   } else {
 //     // else redirect back to authorize
-//     res.redirect(511, "/authorize");
+//     res.redirect(303, "/authorize");
 //   }
 // });
 // route to update a category (including adding a bookmark to it)
