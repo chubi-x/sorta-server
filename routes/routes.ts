@@ -163,8 +163,8 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
     // retrieve the user username from the session store
     const userId = req.session.userId;
     // get a db ref
-    const userRef = firebaseDb.ref(`sorta/users/${userId}`);
-    userRef.on(
+    const userIdRef = usersRef.child(userId);
+    userIdRef.on(
       "value",
       async (snapshot) => {
         const accessToken = snapshot.val().accessToken;
@@ -230,3 +230,4 @@ router.post("/category/:name/:description", (req: Request, res: Response) => {
 // route to update a category (including adding a bookmark to it)
 // route to delete a category
 export { router };
+
