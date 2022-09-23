@@ -2,13 +2,14 @@ import express, { Request, Response, Router } from "express";
 import { TwitterApi } from "twitter-api-v2";
 import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types";
 import dotenv from "dotenv";
-
 import session from "express-session";
 import cookieParser from "cookie-parser";
 
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
 
+// require nanoid cause of typescript wahala
+const nanoid = require("nanoid");
 const router: Router = express.Router();
 // initialize firebase db
 const usersRef = firebaseDb.ref("sorta").child("users");
@@ -34,7 +35,7 @@ router.use(
 router.use(cookieParser());
 
 router.get("/", (req: Request, res: Response) => {
-  res.redirect("/authorize");
+  return res.redirect("/authorize");
 });
 
 router.get("/authorize", async (req: Request, res: Response) => {
@@ -52,10 +53,10 @@ router.get("/authorize", async (req: Request, res: Response) => {
     req.session.oAuth = {
       ...authLink,
     };
-    res.status(200).send({ url: req.session.oAuth.url });
+    return res.status(200).json({ url: req.session.oAuth.url });
   } catch (err) {
     //  TODO:  return the error to a logging service
-    res.status(400).send("could not generate auth link");
+    res.status(400).end("could not generate auth link");
     console.log("could not generate auth link" + err);
   }
 });
@@ -71,14 +72,14 @@ router.get("/me", async (req: Request, res: Response) => {
     if (!codeVerifier || !state || !sessionState || !code) {
       return res
         .status(400)
-        .send(
+        .end(
           "You denied the router or your session expired! Try logging in again."
         );
     }
     if (state !== sessionState) {
       return res
         .status(400)
-        .send("Stored tokens didn't match! Try logging in again.");
+        .end("Stored tokens didn't match! Try logging in again.");
     }
     //get persistent access tokens
     // create a client from temporary tokens
@@ -104,19 +105,19 @@ router.get("/me", async (req: Request, res: Response) => {
       // store access token and refresh token in firestore
       const userIdRef = usersRef.child(user.data.id);
       // ONLY CREATE USER IF THEY DON'T EXIST
-      userIdRef.once("value").then((snapshot) => {
+      userIdRef.once("value").then(async (snapshot) => {
         if (snapshot.exists()) {
           // update their access and refresh tokens in the db
-          userIdRef.update({
+          await userIdRef.update({
             accessToken,
             refreshToken,
             tokenExpiresIn: expiresIn,
           });
           // save the user id to the session store and redirect to bookmarks
           req.session.userId = user.data.id;
-          res.redirect("/bookmarks");
+          return res.redirect("/bookmarks");
         } else {
-          userIdRef.set(
+          await userIdRef.set(
             {
               username: user.data.username,
               pfp: user.data.profile_image_url,
@@ -130,25 +131,24 @@ router.get("/me", async (req: Request, res: Response) => {
                 console.log("Error saving new user" + err);
                 res.status(400).redirect("/authorize");
               }
-              //TODO: log new user created to logging service
-              console.log("successfully created new user!");
-
-              // save the user id to the session store
-              req.session.userId = user.data.id;
-              res.redirect(201, "/bookmarks");
             }
           );
+          //TODO: log new user created to logging service
+          console.log("successfully created new user!");
+          // save the user id to the session store
+          req.session.userId = user.data.id;
+          return res.redirect(201, "/bookmarks");
         }
       });
     } catch (err) {
       //  TODO:  return this to a logging service
       console.log(err);
-      res
+      return res
         .status(400)
         .send("An error occured while logging you in. please try again. ");
     }
   } else {
-    res.redirect(303, "/authorize");
+    return res.redirect(303, "/authorize");
   }
 });
 
@@ -167,18 +167,19 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
         // get user access token
         const user = snapshot.val();
         const accessToken = user.accessToken;
+        // don't send back tockens
+        delete user.accessToken;
+        delete user.refreshToken;
         try {
           const newTwitterClient = new TwitterApi(accessToken);
           // get and return the users bookmarks
           const bookmarks = await newTwitterClient.v2.bookmarks();
-          delete user.accessToken;
-          delete user.refreshToken;
-          res.status(200).json({ user, bookmarks });
+          return res.status(200).json({ user, bookmarks });
         } catch (err) {
           // TODO: log error to logging service
-          console.error(err);
+          console.error("the error: " + err);
           // redirect to authorize
-          res.redirect(303, "/authorize");
+          return res.redirect(303, "/authorize");
         }
       },
       (errorObj) => {
@@ -186,12 +187,12 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
         console.log(
           "couldn't retrieve the data \n" + errorObj.name + errorObj.message
         );
-        res.send("error could not retrieve your data. please try again.");
+        return res.end("error could not retrieve your data. please try again.");
       }
     );
   } else {
     console.log("session expired. reauthorize.");
-    res.redirect(303, "/authorize");
+    return res.redirect(303, "/authorize");
   }
 });
 // route to remove a bookmark
@@ -204,18 +205,20 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
     const userRef = firebaseDb.ref(`sorta/users/${userId}`);
     userRef.on(
       "value",
-      (snapshot) => {
+      async (snapshot) => {
         const accessToken = snapshot.val().accessToken;
         try {
           const newTwitterClient = new TwitterApi(accessToken);
-          newTwitterClient.v2.deleteBookmark(tweetId);
+          await newTwitterClient.v2.deleteBookmark(tweetId);
           console.log("bookmark deleted successfully");
-          res.status(200).json({ message: "bookmark deleted successfully!" });
+          return res
+            .status(200)
+            .json({ message: "bookmark deleted successfully!" });
         } catch (err) {
           // TODO: log error to logging service
-          console.error(err);
+          console.log(err);
           // redirect to authorize
-          res.redirect(303, "/authorize");
+          return res.redirect(303, "/authorize");
         }
       },
       (errorObject) => {
@@ -223,56 +226,58 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
         console.log(
           `an error occured while deleting a bookmark. \n${errorObject.name} \n ${errorObject.message}`
         );
-        res
+        return res
           .status(400)
-          .send("an error occured while deleting for your bookmark.");
+          .end("an error occured while deleting for your bookmark.");
       }
     );
   } else {
     console.log("no session detected");
-    res.redirect(303, "/bookmarks");
+    return res.redirect(303, "/bookmarks");
   }
 });
 
 // route to create a category
-router.post("/category", (req: Request, res: Response) => {
+router.post("/category", async (req: Request, res: Response) => {
   //check for a session
   if (req.session.userId) {
     const userId = req.session.userId;
     // retrieve user from db
     const categoryRef = usersRef.child(userId).child("categories");
+    const categoryId = nanoid();
     // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
-    const category = categoryRef.push();
-    const categoryKey = category.key;
-    console.log(req.body);
-    category.set(
+    await categoryRef.child(categoryId).set(
       {
+        id: categoryId,
         name: req.body.name,
         description: req.body.description,
         image: req.body.image,
       },
       (err) => {
-        //TODO: Log to logging service
-        console.log(`error creating category \n ${err}`);
-        res.status(409).send("error creating category");
+        if (err) {
+          //TODO: Log to logging service
+          console.log(`error creating category \n ${err}`);
+          return res.status(409).send("error creating category");
+        }
       }
     );
-    categoryRef.child(categoryKey!).on(
+    categoryRef.on(
       "value",
       (snapshot) => {
-        res.status(201).json({ id: categoryKey, data: snapshot.val() });
+        const category = snapshot.val()[categoryId];
+        return res.status(201).json({ category });
       },
       (errObject) => {
         // TODO: log to logging service
         console.log(
           `error retrieving the new category \n ${errObject.name} : ${errObject.message}`
         );
-        res.status(409).send("error retrieving the new category");
+        return res.status(409).end("error retrieving the new category");
       }
     );
   } else {
     // else redirect back to authorize
-    res.redirect(303, "/authorize");
+    return res.redirect(303, "/authorize");
   }
 });
 // route to update a category (including adding a bookmark to it)
