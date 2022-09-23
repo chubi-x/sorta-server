@@ -10,17 +10,6 @@ import cookieParser from "cookie-parser";
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
 
-/**
- * TODO
- * - route to get user info from db
- *  - render error html before redirecting
- * - for every route that goes to db for access token, check if it has expired.
- *    if it has, use the refresh token to get a new access token
- *    then save the new access and refresh tokens to db
- * - figure out how to use pagination to get all user bookmarks
- * - always check if user exists in db before running any db logic
- */
-
 const router: Router = express.Router();
 // initialize firebase db
 const usersRef = firebaseDb.ref("sorta").child("users");
