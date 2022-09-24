@@ -8,6 +8,8 @@ import cookieParser from "cookie-parser";
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
 
+// error variable
+const NO_SESSION_ID = "User does not have a session.";
 // require nanoid cause of typescript wahala
 const nanoid = require("nanoid");
 const router: Router = express.Router();
@@ -73,7 +75,7 @@ router.get("/me", async (req: Request, res: Response) => {
       return res
         .status(400)
         .end(
-          "You denied the router or your session expired! Try logging in again."
+          "You denied the connection or your session expired! Try logging in again."
         );
     }
     if (state !== sessionState) {
@@ -161,19 +163,20 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
     const userId = req.session.userId;
     // get a db ref
     const userIdRef = usersRef.child(userId);
-    userIdRef.on(
+    userIdRef.once(
       "value",
       async (snapshot) => {
-        // get user access token
-        const user = snapshot.val();
-        const accessToken = user.accessToken;
-        // don't send back tockens
-        delete user.accessToken;
-        delete user.refreshToken;
         try {
+          // get user access token
+          const user = snapshot.val();
+          const accessToken = user.accessToken;
           const newTwitterClient = new TwitterApi(accessToken);
           // get and return the users bookmarks
           const bookmarks = await newTwitterClient.v2.bookmarks();
+          // don't send back tockens
+          delete user.accessToken;
+          delete user.refreshToken;
+
           return res.status(200).json({ user, bookmarks });
         } catch (err) {
           // TODO: log error to logging service
@@ -191,7 +194,6 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
       }
     );
   } else {
-    console.log("session expired. reauthorize.");
     return res.redirect(303, "/authorize");
   }
 });
@@ -203,7 +205,7 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
     const userId = req.session.userId;
     // get a db ref
     const userRef = firebaseDb.ref(`sorta/users/${userId}`);
-    userRef.on(
+    userRef.once(
       "value",
       async (snapshot) => {
         const accessToken = snapshot.val().accessToken;
@@ -232,8 +234,7 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
       }
     );
   } else {
-    console.log("no session detected");
-    return res.redirect(303, "/bookmarks");
+    return res.redirect(303, "/authorize");
   }
 });
 
@@ -246,8 +247,8 @@ router.post("/category", async (req: Request, res: Response) => {
       // retrieve user from db
       const categoryRef = usersRef.child(userId).child("categories");
       // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
-      const category = categoryRef.push();
-      const categoryKey = category.key;
+      const categoryId = nanoid();
+      const category = categoryRef.child(categoryId);
       await category.set(
         {
           name: req.body.name,
@@ -262,19 +263,17 @@ router.post("/category", async (req: Request, res: Response) => {
           }
         }
       );
-      categoryRef.child(categoryKey!).on(
+      categoryRef.child(categoryId!).once(
         "value",
         (snapshot) => {
-          return res
-            .status(201)
-            .json({ id: categoryKey, data: snapshot.val() });
+          return res.status(201).json({ id: categoryId, data: snapshot.val() });
         },
         (errObject) => {
           // TODO: log to logging service
           console.log(
             `error retrieving the new category \n ${errObject.name} : ${errObject.message}`
           );
-          res.status(409).send("error retrieving the new category");
+          return res.status(409).send("error retrieving the new category");
         }
       );
     } else {
