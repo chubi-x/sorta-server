@@ -284,6 +284,12 @@ router.post("/category", async (req: Request, res: Response) => {
   }
 });
 // route to update a category (including adding a bookmark to it)
+router.put("/category/:id", (req: Request, res: Response) => {
+  // retrieve the category id from request parameters
+  // get the category from the db
+  // update it with the request body
+  // return the updated category
+});
 // route to delete a category
 export { router };
 
