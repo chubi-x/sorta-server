@@ -239,43 +239,49 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
 
 // route to create a category
 router.post("/category", async (req: Request, res: Response) => {
-  //check for a session
-  if (req.session.userId) {
-    const userId = req.session.userId;
-    // retrieve user from db
-    const categoryRef = usersRef.child(userId).child("categories");
-    // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
-    const category = categoryRef.push();
-    const categoryKey = category.key;
-    await category.set(
-      {
-        name: req.body.name,
-        description: req.body.description,
-        image: req.body.image,
-      },
-      (err) => {
-        if (err) {
-          //TODO: Log to logging service
-          console.log(`error creating category \n ${err}`);
-          return res.status(409).send("error creating category");
+  try {
+    //check for a session
+    if (req.session.userId) {
+      const userId = req.session.userId;
+      // retrieve user from db
+      const categoryRef = usersRef.child(userId).child("categories");
+      // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
+      const category = categoryRef.push();
+      const categoryKey = category.key;
+      await category.set(
+        {
+          name: req.body.name,
+          description: req.body.description,
+          image: req.body.image,
+        },
+        (err) => {
+          if (err) {
+            //TODO: Log to logging service
+            console.log(`error creating category \n ${err}`);
+            return res.status(409).send("error creating category");
+          }
         }
-      }
-    );
-    categoryRef.child(categoryKey!).on(
-      "value",
-      (snapshot) => {
-        return res.status(201).json({ id: categoryKey, data: snapshot.val() });
-      },
-      (errObject) => {
-        // TODO: log to logging service
-        console.log(
-          `error retrieving the new category \n ${errObject.name} : ${errObject.message}`
-        );
-        res.status(409).send("error retrieving the new category");
-      }
-    );
-  } else {
-    return res.redirect(303, "/authorize");
+      );
+      categoryRef.child(categoryKey!).on(
+        "value",
+        (snapshot) => {
+          return res
+            .status(201)
+            .json({ id: categoryKey, data: snapshot.val() });
+        },
+        (errObject) => {
+          // TODO: log to logging service
+          console.log(
+            `error retrieving the new category \n ${errObject.name} : ${errObject.message}`
+          );
+          res.status(409).send("error retrieving the new category");
+        }
+      );
+    } else {
+      return res.redirect(303, "/authorize");
+    }
+  } catch (err) {
+    console.log(`request error ${err}`);
   }
 });
 // route to update a category (including adding a bookmark to it)
