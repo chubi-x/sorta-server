@@ -6,6 +6,7 @@
   if it has, use the refresh token to get a new access token
   then save the new access and refresh tokens to db
 - figure out how to use pagination to get all user bookmarks
+- Create error handler class
 
 ## ROUTES
 
