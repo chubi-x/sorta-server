@@ -10,6 +10,7 @@
 ## ROUTES
 
 - ~~route to get user info from db~~
+- split routes into controllers and services
 - implement validation for creating new category
 - route to update a category (including adding a bookmark to it)
 - route to delete a category
