@@ -289,6 +289,58 @@ router.post("/category", async (req: Request, res: Response) => {
     console.log(`request error ${err}`);
   }
 });
+// route to update a category's attributes
+router.patch("/category/:id", async (req: Request, res: Response) => {
+  try {
+    // user has to have a session
+    if (req.session.userId) {
+      const userId = req.session.userId,
+        categoryId = req.params.id,
+        categoryRef = usersRef
+          .child(userId)
+          .child("categories")
+          .child(categoryId);
+      await categoryRef.update(
+        {
+          name: req.body.name,
+          description: req.body.description,
+          image: req.body.image,
+        },
+        (err) => {
+          if (err) {
+            // TODO: log error to logging service
+            console.log(err);
+            return res.status(400).send("Error updating category. try again");
+          }
+        }
+      );
+      await categoryRef.once(
+        "value",
+        (snapshot) => {
+          // return the updated data
+          const data = snapshot.val();
+          delete data.bookmarks;
+          res.status(200).json({ id: categoryId, data });
+        },
+        (errorObject) => {
+          // TODO: log to logging service
+          console.log(
+            `error retrieving the category \n ${errorObject.name} : ${errorObject.message}`
+          );
+          return res.status(409).send("error retrieving the category");
+        }
+      );
+    } else {
+      return res.redirect(303, "/authorize");
+    }
+  } catch (err) {
+    // TODO: log to logging service
+    console.log(err);
+    return res
+      .status(400)
+      .send("There was an error accessing this endpoint. please try again.");
+  }
+});
 // route to update a category's bookmarks
 router.patch("/category/:id/bookmarks", async (req: Request, res: Response) => {
   try {
