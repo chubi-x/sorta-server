@@ -8,7 +8,7 @@
 ## DATA TRANSFER
 
 - connect redis session store (chubi)
-- figure out how to use pagination to get all user bookmarks (emma)
+- figure out how to use pagination to get all user bookmarks (emekathegreat)
 - implement validation for creating new category (emma)
 - create DTOs for all request bodies (chubi)
 
