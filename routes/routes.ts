@@ -10,6 +10,12 @@ import { firebaseDb } from "../auth/firebase";
 
 // error variable
 const NO_SESSION_ID = "User does not have a session.";
+
+// update type enum
+enum bookmarkUpdateType {
+  ADD = "add",
+  DELETE = "delete",
+}
 // require nanoid cause of typescript wahala
 const nanoid = require("nanoid");
 const router: Router = express.Router();
@@ -283,43 +289,111 @@ router.post("/category", async (req: Request, res: Response) => {
     console.log(`request error ${err}`);
   }
 });
-// route to update a category (including adding a bookmark to it)
+// route to update a category's bookmarks
 router.patch("/category/:id", async (req: Request, res: Response) => {
   try {
     // user has to have a session
     if (req.session.userId) {
-      const userId = req.session.userId;
-      const categoryId = req.params.id;
-      const categoryRef = usersRef
-        .child(userId)
-        .child("categories")
-        .child(categoryId);
-      await categoryRef.update(
-        {
-          name: req.body.name,
-          description: req.body.description,
-          image: req.body.image,
-          tweets: req.body.tweets,
+      const userId = req.session.userId,
+        categoryId = req.params.id,
+        updateType: bookmarkUpdateType = req.body.updateType,
+        bookmarksToUpdate: [] = req.body.bookmarks,
+        // create a reference to the category
+        categoryRef = usersRef.child(`${userId}/categories/${categoryId}`),
+        // function to return category
+        returnCategory = async () => {
+          // return the updated category
+          await categoryRef.once(
+            "value",
+            (snapshot) => {
+              // manipulating bookmarks so it can be returned as an array
+              const bookmarks = snapshot.child("bookmarks");
+              let bookmarksArray: any[] = [];
+              bookmarks.forEach((bookmark) => {
+                bookmarksArray.push(bookmark.child("tweet_Id").val());
+              });
+              return res
+                .status(updateType === bookmarkUpdateType.DELETE ? 200 : 201)
+                .json({
+                  id: categoryId,
+                  bookmarks: bookmarksArray,
+                });
+            },
+            (errorObject) => {
+              // TODO: log to logging service
+              console.log(
+                `error retrieving the category \n ${errorObject.name} : ${errorObject.message}`
+              );
+              return res.status(409).send("error retrieving the category");
+            }
+          );
+        },
+        // create a reference to the bookmarks list in the category
+        bookmarksRef = categoryRef.child("bookmarks");
+      // update bookmarks
+      await bookmarksRef.once(
+        "value",
+        async (snapshot) => {
+          if (updateType === bookmarkUpdateType.ADD) {
+            console.log("user wants to add bookmarks");
+            // update the category's bookmarks with the new bookmarks array
+            bookmarksToUpdate.forEach(async (bookmark) => {
+              await bookmarksRef.push(
+                {
+                  tweet_Id: bookmark,
+                },
+                (err) => {
+                  if (err) {
+                    console.log(`Error creating bookmarks in category ${err}`);
+                    return res
+                      .status(400)
+                      .send(`Error creating bookmarks in category ${err}`);
+                  }
+                }
+              );
+            });
+            // return the updated category
+            return await returnCategory();
+          } else if (updateType === bookmarkUpdateType.DELETE) {
+            console.log("user wants to delete bookmarks");
+            // check if snapshot exists
+            if (snapshot.exists()) {
+              console.log("the bookmarks you want to delete exist");
+              // traverse the tweets array and delete every item in it from the db
+              snapshot.forEach((value) => {
+                // retrieve a snapshot of the bookmark tweet id
+                const bookmarkTweetId = value.child("tweet_Id");
+                bookmarksToUpdate.forEach((bookmark) => {
+                  // check if the value of the bookmark tweet id corresponds to the bookmark to update
+                  if (bookmarkTweetId.val() === bookmark) {
+                    // remove the bookmark
+                    bookmarkTweetId.ref.remove((err) => {
+                      if (err) {
+                        // TODO: log to logging service
+                        console.log(
+                          `error removing bookmark from category. ${err}`
+                        );
+                        return res.send(
+                          "There was an error deleting this bookmark"
+                        );
+                      }
+                    });
+                  }
+                });
+              });
+              // return the updated category
+              return await returnCategory();
+            } else {
+              console.log("the bookmarks you want to delete do not exist");
+              return res
+                .status(404)
+                .send("No bookmarks in this category. Add some first.");
+            }
+          }
         },
         (err) => {
-          if (err) {
-            // TODO: log error to logging service
-            console.log(err);
-            return res.status(400).send("Error updating category. try again");
-          }
-        }
-      );
-      await categoryRef.once(
-        "value",
-        (snapshot) => {
-          res.status(200).json({ id: categoryId, data: snapshot.val() });
-        },
-        (errorObject) => {
           // TODO: log to logging service
-          console.log(
-            `error retrieving the category \n ${errorObject.name} : ${errorObject.message}`
-          );
-          return res.status(409).send("error retrieving the category");
+          console.log(`Error retrieving bookmarks from category ${err}`);
         }
       );
     } else {
