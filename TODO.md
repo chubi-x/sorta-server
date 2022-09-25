@@ -17,7 +17,7 @@
 - ~~route to get user info from db~~
 - split routes into controllers and services (emma)
 - route to get categories
-  -route to get user info
-- route to update a category (including adding a bookmark to it) (chubi)
+  -route to get user info - (chubi) [pending review]
+- route to update a category (including adding a bookmark to it) (chubi) [pending review]
 - route to delete a category (chubi)
 
