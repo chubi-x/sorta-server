@@ -290,7 +290,7 @@ router.post("/category", async (req: Request, res: Response) => {
   }
 });
 // route to update a category's bookmarks
-router.patch("/category/:id", async (req: Request, res: Response) => {
+router.patch("/category/:id/bookmarks", async (req: Request, res: Response) => {
   try {
     // user has to have a session
     if (req.session.userId) {
