@@ -238,6 +238,31 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
   }
 });
 
+// route to get a users categories
+router.get("/categories", async (req: Request, res: Response) => {
+  try {
+    if (req.session.userId) {
+      const userId = req.session.userId,
+        // array to hold categories
+        categoriesArray: any[] = [],
+        // retrieve user user categories from db
+        categoryRef = usersRef.child(`${userId}/categories`);
+      await categoryRef.once("value", (snapshot) => {
+        snapshot.forEach((category) => {
+          categoriesArray.push(category.val());
+        });
+      });
+      res.json({ id: userId, categories: categoriesArray });
+    } else {
+      res.redirect(303, "/authorize");
+    }
+  } catch (err) {
+    console.log(
+      `There was an error accessing this endpoint. see error below \n ${err}`
+    );
+  }
+});
+
 // route to create a category
 router.post("/category", async (req: Request, res: Response) => {
   try {
