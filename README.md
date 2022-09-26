@@ -6,8 +6,8 @@ expressJS server for sorta, a twitter app that lets users categorize their bookm
 ### Getting Started
 1. Create a twitter developer account (permissions should be able to read tweets and read/write user bookmarks)
 2. create an app with the following settings:
-<img width="244" alt="image" src="https://user-images.githubusercontent.com/34838966/192272132-9fbf461b-e07e-4b97-827b-5c99d7bf10c3.png">
-<img width="234" alt="image" src="https://user-images.githubusercontent.com/34838966/192272610-cac01495-83c2-40a4-9cd6-872c3759c6e9.png">
+  <img width="244" alt="image" src="https://user-images.githubusercontent.com/34838966/192272132-9fbf461b-e07e-4b97-827b-5c99d7bf10c3.png">
+  <img width="234" alt="image" src="https://user-images.githubusercontent.com/34838966/192272610-cac01495-83c2-40a4-9cd6-872c3759c6e9.png">
 3. Save your Consumer Keys and Oauth2 Client Keys and Client Secret in a .env file  
 4. Create a firebase app and enable the Realtime Database on it.  
 5. Save your google app credentials in the .env file  
