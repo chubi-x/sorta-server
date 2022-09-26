@@ -354,8 +354,20 @@ router.patch(
           categoryId = req.params.categoryId,
           updateType: bookmarkUpdateType = req.body.updateType,
           bookmarksToUpdate: [] = req.body.bookmarks,
+          // get a ref to the category object
+          categoryRef = usersRef.child(`${userId}/categories/${categoryId}`),
           // get a ref to the bookmarks object
           bookmarksRef = usersRef.child(`${userId}/bookmarks`),
+          // Db read error callback function
+          dbReadErrorCallback = (errorObject: any, readObject: string) => {
+            // TODO: log to logging service
+            console.log(
+              `error accessing ${readObject} \n ${errorObject.name} : ${errorObject.message}`
+            );
+            return res
+              .status(409)
+              .send(`There was an error accessing your ${readObject}`);
+          },
           // function to return category
           returnCategory = async () => {
             // return the updated category and the bookmarks an array
@@ -369,13 +381,7 @@ router.patch(
                 });
               },
               (errorObject) => {
-                // TODO: log to logging service
-                console.log(
-                  `error retrieving bookmarks \n ${errorObject.name} : ${errorObject.message}`
-                );
-                return res
-                  .status(409)
-                  .send("There was an error retrieving your bookmarks");
+                dbReadErrorCallback(errorObject, "bookmarks");
               }
             );
             return res
@@ -385,6 +391,7 @@ router.patch(
                 bookmarks: bookmarksArray,
               });
           };
+
         // push the bookmarks to the bookmarks object
         await bookmarksRef.once(
           "value",
@@ -393,7 +400,7 @@ router.patch(
             if (snapshot.exists()) {
               if (updateType === bookmarkUpdateType.ADD) {
                 console.log("user wants to add a bookmark");
-                bookmarksToUpdate.forEach((bookmark) => {
+                bookmarksToUpdate.forEach(async (bookmark) => {
                   bookmarksRef.push(
                     {
                       categoryId,
@@ -412,6 +419,7 @@ router.patch(
                     }
                   );
                 });
+                // return the updated category
                 return await returnCategory();
               } else if (updateType === bookmarkUpdateType.DELETE) {
                 console.log("user wants to delete a bookmark");
@@ -419,7 +427,7 @@ router.patch(
                 snapshot.forEach((bookmark) => {
                   // check if the category id matches the provided category
                   console.log({ bookmark: bookmark.val() });
-                  bookmarksToUpdate.forEach((bookmarkToDelete) => {
+                  bookmarksToUpdate.forEach(async (bookmarkToDelete) => {
                     if (
                       bookmark.child("categoryId").val() === categoryId &&
                       bookmark.child("tweetId").val() === bookmarkToDelete
@@ -439,6 +447,7 @@ router.patch(
                     }
                   });
                 });
+                // return the updated category
                 return await returnCategory();
               } else {
                 return res
