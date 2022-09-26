@@ -433,7 +433,7 @@ router.patch(
                       bookmark.child("tweetId").val() === bookmarkToDelete
                     ) {
                       // delete the bookmark
-                      bookmark.ref.remove((err) => {
+                      await bookmark.ref.remove((err) => {
                         if (err) {
                           // TODO: log to logging service
                           console.log(
