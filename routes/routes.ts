@@ -532,5 +532,63 @@ router.patch(
   }
 );
 // route to delete a category
+router.delete(
+  "/categories/:categoryId",
+  async (req: Request, res: Response) => {
+    try {
+      // user must have a session
+      const userId = req.session.userId;
+      if (userId) {
+        const categoryId = req.params.categoryId,
+          // get a ref to the specified category and remove it
+          categoryRef = usersRef.child(`${userId}/categories/${categoryId}`);
+        await categoryRef.remove((err) => {
+          // TODO: log to logging service
+          if (err) {
+            console.log(
+              `Error deleting category. see details below: \n ${err}`
+            );
+          }
+        });
+        // list of bookmark removal promises
+        const bookmarkRemovalPromiseList: Promise<any>[] = [],
+          // async function to delete bookmarks
+          deleteBookmark = async (bookmarkSnapshot: DataSnapshot) => {
+            if (bookmarkSnapshot.child("categoryId").val() === categoryId) {
+              await bookmarkSnapshot.ref.remove((err) => {
+                // TODO: log to logging service
+                if (err) {
+                  console.log(
+                    `Error deleting bookmark. see details below: \n ${err}`
+                  );
+                }
+              });
+            }
+          };
+        // traverse bookmarks object and delete every bookmark whose category id matches the specified category id
+        await usersRef
+          .child(`${userId}/bookmarks`)
+          .once("value", async (bookmarksSnapshot) => {
+            bookmarksSnapshot.forEach((bookmarkSnapshot) => {
+              bookmarkRemovalPromiseList.push(deleteBookmark(bookmarkSnapshot));
+            });
+            // fulfill bookmark removal promises
+            await Promise.all(bookmarkRemovalPromiseList);
+            // send success message
+            return res.send("category deleted successfully.");
+          });
+      } else {
+        return res.redirect(303, "/authorize");
+      }
+    } catch (err) {
+      console.log(
+        `There was an error accessing delete categories endpoint. see full error below: \n ${err}`
+      );
+      return res
+        .status(400)
+        .send("There was an error accessing this endpoint. Please try again");
+    }
+  }
+);
 export { router };
 
