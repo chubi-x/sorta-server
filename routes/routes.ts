@@ -295,10 +295,10 @@ router.post("/category", async (req: Request, res: Response) => {
 // route to update a category's attributes
 router.patch("/category/:categoryId", async (req: Request, res: Response) => {
   try {
-    // user has to have a session
-    if (req.session.userId) {
-      const userId = req.session.userId,
-        categoryId = req.params.categoryId,
+    // user must have a session
+    const userId = req.session.userId;
+    if (userId) {
+      const categoryId = req.params.categoryId,
         categoryRef = usersRef
           .child(userId)
           .child("categories")
@@ -335,9 +335,10 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       // user must have a session
-      if (req.session.userId) {
-        const userId = req.session.userId,
-          categoryId = req.params.categoryId,
+      const userId = req.session.userId;
+
+      if (userId) {
+        const categoryId = req.params.categoryId,
           updateType: bookmarkUpdateType = req.body.updateType,
           bookmarksToUpdate: [] = req.body.bookmarks,
           // get a ref to the bookmarks object
