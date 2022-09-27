@@ -216,8 +216,8 @@ router.delete(
       userRef.once(
         "value",
         async (snapshot) => {
-          const accessToken = snapshot.val().accessToken;
           try {
+            const accessToken = snapshot.val().accessToken;
             const newTwitterClient = new TwitterApi(accessToken);
             await newTwitterClient.v2.deleteBookmark(bookmarkedTweetId);
             console.log("bookmark deleted successfully");
