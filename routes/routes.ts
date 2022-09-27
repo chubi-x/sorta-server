@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from "express";
 import { TwitterApi } from "twitter-api-v2";
 import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types";
+import { DataSnapshot } from "@firebase/database-types";
 import dotenv from "dotenv";
 import session from "express-session";
 import cookieParser from "cookie-parser";
@@ -257,6 +258,79 @@ router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
     );
   } else {
     return res.redirect(303, "/authorize");
+  }
+});
+
+// route to get a users categories
+router.get("/categories", async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId;
+    if (userId) {
+      // array to hold categories
+      const categoriesArray: any[] = [],
+        // get a ref to user's bookmarks
+        bookmarksRef = usersRef.child(`${userId}/bookmarks`),
+        // retrieve user user categories from db
+        categoryRef = usersRef.child(`${userId}/categories`);
+
+      await categoryRef.once(
+        "value",
+        async (categoriesSnapshot) => {
+          // list to hold bookmarks ref read promises
+          const promiseList: Promise<any>[] = [],
+            // async function to read bookmarks ref
+            readBookmarks = async (categorySnapshot: DataSnapshot) => {
+              const bookmarksArray: string[] = [],
+                categoryId = categorySnapshot.ref.key;
+              await bookmarksRef.once(
+                "value",
+                (bookmarksSnapshot) => {
+                  bookmarksSnapshot.forEach((bookmarkSnapshot) => {
+                    if (
+                      bookmarkSnapshot.child("categoryId").val() === categoryId
+                    )
+                      bookmarksArray.push(
+                        bookmarkSnapshot.child("tweetId").val()
+                      );
+                  });
+                },
+                (errorObject) => {
+                  // TODO: log to logging service
+                  console.log(
+                    `error accessing bookmarks \n ${errorObject.name} : ${errorObject.message}`
+                  );
+                }
+              );
+              categoriesArray.push({
+                category: { id: categoryId, data: categorySnapshot.val() },
+                bookmarks: bookmarksArray,
+              });
+            };
+          categoriesSnapshot.forEach((categorySnapshot) => {
+            promiseList.push(readBookmarks(categorySnapshot));
+          });
+          // fulfill promises
+          await Promise.all(promiseList);
+          //TODO: return an array of the categories and their bookmarks
+          res.json({ categories: categoriesArray });
+        },
+        (errorObject) => {
+          // TODO: log to logging service
+          console.log(
+            `error accessing categories \n ${errorObject.name} : ${errorObject.message}`
+          );
+          return res
+            .status(409)
+            .send("There was an error accessing your categories");
+        }
+      );
+    } else {
+      res.redirect(303, "/authorize");
+    }
+  } catch (err) {
+    console.log(
+      `There was an error accessing this endpoint. see error below \n ${err}`
+    );
   }
 });
 
