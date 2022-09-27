@@ -123,7 +123,7 @@ router.get("/me", async (req: Request, res: Response) => {
           });
           // save the user id to the session store and redirect to bookmarks
           req.session.userId = user.data.id;
-          return res.redirect("/bookmarks");
+          return res.redirect("/user");
         } else {
           await userIdRef.set(
             {
@@ -145,7 +145,7 @@ router.get("/me", async (req: Request, res: Response) => {
           console.log("successfully created new user!");
           // save the user id to the session store
           req.session.userId = user.data.id;
-          return res.redirect(201, "/bookmarks");
+          return res.redirect(201, "/user");
         }
       });
     } catch (err) {
@@ -160,47 +160,69 @@ router.get("/me", async (req: Request, res: Response) => {
   }
 });
 
+// get user info
+router.get("/user", (req: Request, res: Response) => {
+  try {
+    // user must have session
+    const userId = req.session.userId;
+
+    if (userId) {
+      // retrieve user from db
+      const userRef = usersRef.child(userId);
+      userRef.once("value", (snapshot) => {
+        const userData = snapshot.val();
+        return res.json({
+          user: { id: userId, username: userData.username, pfp: userData.pfp },
+        });
+      });
+    } else {
+      return res.redirect("/authorize");
+    }
+  } catch (err) {
+    console.log(
+      `There was an error accessing this endpoint. see below\n ${err}`
+    );
+  }
+});
 // get bookmarks
 router.get("/bookmarks", async (req: Request, res: Response) => {
-  // route only works if user has a session
-  if (req.session.userId) {
-    console.log("a session was found!");
+  try {
+    // route only works if user has a session
     // retrieve the user username from the session store
     const userId = req.session.userId;
-    // get a db ref
-    const userIdRef = usersRef.child(userId);
-    userIdRef.once(
-      "value",
-      async (snapshot) => {
-        try {
+    if (userId) {
+      console.log("a session was found!");
+      // get a db ref
+      const userIdRef = usersRef.child(userId);
+      userIdRef.once(
+        "value",
+        async (snapshot) => {
           // get user access token
           const user = snapshot.val();
           const accessToken = user.accessToken;
           const newTwitterClient = new TwitterApi(accessToken);
           // get and return the users bookmarks
           const bookmarks = await newTwitterClient.v2.bookmarks();
-          // don't send back tokens
-          delete user.accessToken;
-          delete user.refreshToken;
-
-          return res.status(200).json({ user, bookmarks });
-        } catch (err) {
-          // TODO: log error to logging service
-          console.error("the error: " + err);
-          // redirect to authorize
-          return res.redirect(303, "/authorize");
+          return res.status(200).json({ bookmarks });
+        },
+        (errorObject) => {
+          // TODO: log error to logging serivce
+          console.log(
+            "couldn't retrieve the data \n" +
+              errorObject.name +
+              errorObject.message
+          );
+          return res.end(
+            "error could not retrieve your data. please try again."
+          );
         }
-      },
-      (errorObj) => {
-        // TODO: log error to logging serivce
-        console.log(
-          "couldn't retrieve the data \n" + errorObj.name + errorObj.message
-        );
-        return res.end("error could not retrieve your data. please try again.");
-      }
-    );
-  } else {
-    return res.redirect(303, "/authorize");
+      );
+    } else {
+      return res.redirect(303, "/authorize");
+    }
+  } catch (err) {
+    // TODO: log to logging service
+    console.log(`Error accessing bookmarks endpoint. see below \n ${err}`);
   }
 });
 // route to remove a bookmark
