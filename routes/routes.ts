@@ -117,7 +117,7 @@ router.get("/me", async (req: Request, res: Response) => {
           });
           // save the user id to the session store and redirect to bookmarks
           req.session.userId = user.data.id;
-          return res.redirect("/bookmarks");
+          return res.redirect("/user");
         } else {
           await userIdRef.set(
             {
@@ -139,7 +139,7 @@ router.get("/me", async (req: Request, res: Response) => {
           console.log("successfully created new user!");
           // save the user id to the session store
           req.session.userId = user.data.id;
-          return res.redirect(201, "/bookmarks");
+          return res.redirect(201, "/user");
         }
       });
     } catch (err) {
@@ -154,6 +154,29 @@ router.get("/me", async (req: Request, res: Response) => {
   }
 });
 
+// get user info
+router.get("/user", (req: Request, res: Response) => {
+  try {
+    // user must have session
+    if (req.session.userId) {
+      const userId = req.session.userId,
+        // retrieve user from db
+        userRef = usersRef.child(userId);
+      userRef.once("value", (snapshot) => {
+        const userData = snapshot.val();
+        return res.json({
+          user: { username: userData.username, pfp: userData.pfp },
+        });
+      });
+    } else {
+      return res.redirect("/authorize");
+    }
+  } catch (err) {
+    console.log(
+      `There was an error accessing this endpoint. see below\n ${err}`
+    );
+  }
+});
 // get bookmarks
 router.get("/bookmarks", async (req: Request, res: Response) => {
   // route only works if user has a session
@@ -173,11 +196,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
           const newTwitterClient = new TwitterApi(accessToken);
           // get and return the users bookmarks
           const bookmarks = await newTwitterClient.v2.bookmarks();
-          // don't send back tockens
-          delete user.accessToken;
-          delete user.refreshToken;
-
-          return res.status(200).json({ user, bookmarks });
+          return res.status(200).json({ bookmarks });
         } catch (err) {
           // TODO: log error to logging service
           console.error("the error: " + err);
