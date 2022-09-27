@@ -166,7 +166,7 @@ router.get("/user", (req: Request, res: Response) => {
       userRef.once("value", (snapshot) => {
         const userData = snapshot.val();
         return res.json({
-          user: { username: userData.username, pfp: userData.pfp },
+          user: { id: userId, username: userData.username, pfp: userData.pfp },
         });
       });
     } else {
