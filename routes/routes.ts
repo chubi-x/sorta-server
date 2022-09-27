@@ -317,21 +317,7 @@ router.patch("/category/:categoryId", async (req: Request, res: Response) => {
           }
         }
       );
-      await categoryRef.once(
-        "value",
-        (snapshot) => {
-          // return the updated data
-          const data = snapshot.val();
-          res.status(200).json({ id: categoryId, data });
-        },
-        (errorObject) => {
-          // TODO: log to logging service
-          console.log(
-            `error retrieving the category \n ${errorObject.name} : ${errorObject.message}`
-          );
-          return res.status(409).send("error retrieving the category");
-        }
-      );
+      return res.status(200).send({ message: "Category updated successfully" });
     } else {
       return res.redirect(303, "/authorize");
     }
@@ -354,43 +340,8 @@ router.patch(
           categoryId = req.params.categoryId,
           updateType: bookmarkUpdateType = req.body.updateType,
           bookmarksToUpdate: [] = req.body.bookmarks,
-          // get a ref to the category object
-          categoryRef = usersRef.child(`${userId}/categories/${categoryId}`),
           // get a ref to the bookmarks object
-          bookmarksRef = usersRef.child(`${userId}/bookmarks`),
-          // Db read error callback function
-          dbReadErrorCallback = (errorObject: any, readObject: string) => {
-            // TODO: log to logging service
-            console.log(
-              `error accessing ${readObject} \n ${errorObject.name} : ${errorObject.message}`
-            );
-            return res
-              .status(409)
-              .send(`There was an error accessing your ${readObject}`);
-          },
-          // function to return category
-          returnCategory = async () => {
-            // return the updated category and the bookmarks an array
-            const bookmarksArray: string[] = [];
-            await bookmarksRef.once(
-              "value",
-              (snapshot) => {
-                snapshot.forEach((bookmark) => {
-                  if (bookmark.child("categoryId").val() === categoryId)
-                    bookmarksArray.push(bookmark.child("tweetId").val());
-                });
-              },
-              (errorObject) => {
-                dbReadErrorCallback(errorObject, "bookmarks");
-              }
-            );
-            return res
-              .status(updateType === bookmarkUpdateType.DELETE ? 200 : 201)
-              .json({
-                id: categoryId,
-                bookmarks: bookmarksArray,
-              });
-          };
+          bookmarksRef = usersRef.child(`${userId}/bookmarks`);
 
         // push the bookmarks to the bookmarks object
         await bookmarksRef.once(
@@ -417,8 +368,8 @@ router.patch(
                   }
                 );
               });
-              // return the updated category
-              return await returnCategory();
+              // return success message
+              return res.status(200).send("bookmarks added successfully");
               // check the update type
             } else if (updateType === bookmarkUpdateType.DELETE) {
               console.log("user wants to delete a bookmark");
@@ -426,7 +377,6 @@ router.patch(
                 // traverse through the bookmarks
                 bookmarksSnapshot.forEach((bookmark) => {
                   // check if the category id matches the provided category
-                  console.log({ bookmark: bookmark.val() });
                   bookmarksToUpdate.forEach(async (bookmarkToDelete) => {
                     if (
                       bookmark.child("categoryId").val() === categoryId &&
@@ -447,8 +397,8 @@ router.patch(
                     }
                   });
                 });
-                // return the updated category
-                return await returnCategory();
+                // return success message
+                return res.status(200).send("bookmarks removed successfully");
               } else {
                 // add the snapsh
                 console.log("User does not have bookmarks object");
@@ -465,9 +415,11 @@ router.patch(
           (errorObject) => {
             // TODO: log to logging service
             console.log(
-              `error retrieving the category \n ${errorObject.name} : ${errorObject.message}`
+              `error accessing bookmarks \n ${errorObject.name} : ${errorObject.message}`
             );
-            return res.status(409).send("error retrieving the category");
+            return res
+              .status(409)
+              .send("There was an error accessing your bookmark");
           }
         );
       } else {
