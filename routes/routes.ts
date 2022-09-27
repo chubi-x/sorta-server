@@ -11,6 +11,12 @@ import { firebaseDb } from "../auth/firebase";
 
 // error variable
 const NO_SESSION_ID = "User does not have a session.";
+
+// update type enum
+enum bookmarkUpdateType {
+  ADD = "add",
+  DELETE = "delete",
+}
 // require nanoid cause of typescript wahala
 const nanoid = require("nanoid");
 const router: Router = express.Router();
@@ -221,45 +227,48 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
   }
 });
 // route to remove a bookmark
-router.delete("/bookmarks/:tweet_id", (req: Request, res: Response) => {
-  // check if user has a session
-  if (req.session.userId) {
-    const tweetId = req.params.tweet_id;
-    const userId = req.session.userId;
-    // get a db ref
-    const userRef = firebaseDb.ref(`sorta/users/${userId}`);
-    userRef.once(
-      "value",
-      async (snapshot) => {
-        const accessToken = snapshot.val().accessToken;
-        try {
-          const newTwitterClient = new TwitterApi(accessToken);
-          await newTwitterClient.v2.deleteBookmark(tweetId);
-          console.log("bookmark deleted successfully");
+router.delete(
+  "/bookmarks/:bookmarkedTweetId",
+  (req: Request, res: Response) => {
+    // check if user has a session
+    if (req.session.userId) {
+      const bookmarkedTweetId = req.params.bookmarkedTweetId;
+      const userId = req.session.userId;
+      // get a db ref
+      const userRef = firebaseDb.ref(`sorta/users/${userId}`);
+      userRef.once(
+        "value",
+        async (snapshot) => {
+          try {
+            const accessToken = snapshot.val().accessToken;
+            const newTwitterClient = new TwitterApi(accessToken);
+            await newTwitterClient.v2.deleteBookmark(bookmarkedTweetId);
+            console.log("bookmark deleted successfully");
+            return res
+              .status(200)
+              .json({ message: "bookmark deleted successfully!" });
+          } catch (err) {
+            // TODO: log error to logging service
+            console.log(err);
+            // redirect to authorize
+            return res.redirect(303, "/authorize");
+          }
+        },
+        (errorObject) => {
+          //TODO : send errors to logging service
+          console.log(
+            `an error occured while deleting a bookmark. \n${errorObject.name} \n ${errorObject.message}`
+          );
           return res
-            .status(200)
-            .json({ message: "bookmark deleted successfully!" });
-        } catch (err) {
-          // TODO: log error to logging service
-          console.log(err);
-          // redirect to authorize
-          return res.redirect(303, "/authorize");
+            .status(400)
+            .end("an error occured while deleting for your bookmark.");
         }
-      },
-      (errorObject) => {
-        //TODO : send errors to logging service
-        console.log(
-          `an error occured while deleting a bookmark. \n${errorObject.name} \n ${errorObject.message}`
-        );
-        return res
-          .status(400)
-          .end("an error occured while deleting for your bookmark.");
-      }
-    );
-  } else {
-    return res.redirect(303, "/authorize");
+      );
+    } else {
+      return res.redirect(303, "/authorize");
+    }
   }
-});
+);
 
 // route to get a users categories
 router.get("/categories", async (req: Request, res: Response) => {
@@ -379,7 +388,149 @@ router.post("/category", async (req: Request, res: Response) => {
     console.log(`request error ${err}`);
   }
 });
-// route to update a category (including adding a bookmark to it)
+// route to update a category's attributes
+router.patch("/category/:categoryId", async (req: Request, res: Response) => {
+  try {
+    // user must have a session
+    const userId = req.session.userId;
+    if (userId) {
+      const categoryId = req.params.categoryId,
+        categoryRef = usersRef
+          .child(userId)
+          .child("categories")
+          .child(categoryId);
+      await categoryRef.update(
+        {
+          name: req.body.name,
+          description: req.body.description,
+          image: req.body.image,
+        },
+        (err) => {
+          if (err) {
+            // TODO: log error to logging service
+            console.log(err);
+            return res.status(400).send("Error updating category. try again");
+          }
+        }
+      );
+      return res.status(200).send({ message: "Category updated successfully" });
+    } else {
+      return res.redirect(303, "/authorize");
+    }
+  } catch (err) {
+    // TODO: log to logging service
+    console.log(err);
+    return res
+      .status(400)
+      .send("There was an error accessing this endpoint. please try again.");
+  }
+});
+// route to update a category's bookmarks
+router.patch(
+  "/category/:categoryId/bookmarks",
+  async (req: Request, res: Response) => {
+    try {
+      // user must have a session
+      const userId = req.session.userId;
+
+      if (userId) {
+        const categoryId = req.params.categoryId,
+          updateType: bookmarkUpdateType = req.body.updateType,
+          bookmarksToUpdate: [] = req.body.bookmarks,
+          // get a ref to the bookmarks object
+          bookmarksRef = usersRef.child(`${userId}/bookmarks`);
+
+        // push the bookmarks to the bookmarks object
+        await bookmarksRef.once(
+          "value",
+          async (bookmarksSnapshot) => {
+            if (updateType === bookmarkUpdateType.ADD) {
+              console.log("user wants to add a bookmark");
+              bookmarksToUpdate.forEach(async (bookmark) => {
+                bookmarksRef.push(
+                  {
+                    categoryId,
+                    tweetId: bookmark,
+                  },
+                  (err) => {
+                    if (err) {
+                      // TODO: log to loggin service
+                      console.log(
+                        `Error creating bookmarks in category ${err}`
+                      );
+                      return res
+                        .status(400)
+                        .send(`Error creating bookmarks in category ${err}`);
+                    }
+                  }
+                );
+              });
+              // return success message
+              return res.status(200).send("bookmarks added successfully");
+              // check the update type
+            } else if (updateType === bookmarkUpdateType.DELETE) {
+              console.log("user wants to delete a bookmark");
+              if (bookmarksSnapshot.exists()) {
+                // traverse through the bookmarks
+                bookmarksSnapshot.forEach((bookmark) => {
+                  // check if the category id matches the provided category
+                  bookmarksToUpdate.forEach(async (bookmarkToDelete) => {
+                    if (
+                      bookmark.child("categoryId").val() === categoryId &&
+                      bookmark.child("tweetId").val() === bookmarkToDelete
+                    ) {
+                      // delete the bookmark
+                      await bookmark.ref.remove((err) => {
+                        if (err) {
+                          // TODO: log to logging service
+                          console.log(
+                            `Error removing bookmark see description below: \n ${err}`
+                          );
+                          return res.send(
+                            "There was an error removing this bookmark. please try again."
+                          );
+                        }
+                      });
+                    }
+                  });
+                });
+                // return success message
+                return res.status(200).send("bookmarks removed successfully");
+              } else {
+                // add the snapsh
+                console.log("User does not have bookmarks object");
+                return res
+                  .status(404)
+                  .send("No bookmarks in this category. Add some first.");
+              }
+            } else {
+              return res
+                .status(400)
+                .send("invalid update type. try another request.");
+            }
+          },
+          (errorObject) => {
+            // TODO: log to logging service
+            console.log(
+              `error accessing bookmarks \n ${errorObject.name} : ${errorObject.message}`
+            );
+            return res
+              .status(409)
+              .send("There was an error accessing your bookmark");
+          }
+        );
+      } else {
+        return res.redirect(303, "/authorize");
+      }
+    } catch (err) {
+      // TODO: log to logging service
+      console.log(err);
+      return res
+        .status(400)
+        .send("There was an error accessing this endpoint. please try again.");
+    }
+  }
+);
 // route to delete a category
 export { router };
 
