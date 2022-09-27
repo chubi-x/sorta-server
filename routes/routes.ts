@@ -158,10 +158,11 @@ router.get("/me", async (req: Request, res: Response) => {
 router.get("/user", (req: Request, res: Response) => {
   try {
     // user must have session
-    if (req.session.userId) {
-      const userId = req.session.userId,
-        // retrieve user from db
-        userRef = usersRef.child(userId);
+    const userId = req.session.userId;
+
+    if (userId) {
+      // retrieve user from db
+      const userRef = usersRef.child(userId);
       userRef.once("value", (snapshot) => {
         const userData = snapshot.val();
         return res.json({
@@ -180,10 +181,10 @@ router.get("/user", (req: Request, res: Response) => {
 // get bookmarks
 router.get("/bookmarks", async (req: Request, res: Response) => {
   // route only works if user has a session
-  if (req.session.userId) {
+  // retrieve the user username from the session store
+  const userId = req.session.userId;
+  if (userId) {
     console.log("a session was found!");
-    // retrieve the user username from the session store
-    const userId = req.session.userId;
     // get a db ref
     const userIdRef = usersRef.child(userId);
     userIdRef.once(
