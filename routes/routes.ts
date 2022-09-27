@@ -179,7 +179,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
           const newTwitterClient = new TwitterApi(accessToken);
           // get and return the users bookmarks
           const bookmarks = await newTwitterClient.v2.bookmarks();
-          // don't send back tockens
+          // don't send back tokens
           delete user.accessToken;
           delete user.refreshToken;
 
@@ -396,33 +396,33 @@ router.patch(
         await bookmarksRef.once(
           "value",
           async (snapshot) => {
-            // check the update type
-            if (snapshot.exists()) {
-              if (updateType === bookmarkUpdateType.ADD) {
-                console.log("user wants to add a bookmark");
-                bookmarksToUpdate.forEach(async (bookmark) => {
-                  bookmarksRef.push(
-                    {
-                      categoryId,
-                      tweetId: bookmark,
-                    },
-                    (err) => {
-                      if (err) {
-                        // TODO: log to loggin service
-                        console.log(
-                          `Error creating bookmarks in category ${err}`
-                        );
-                        return res
-                          .status(400)
-                          .send(`Error creating bookmarks in category ${err}`);
-                      }
+            if (updateType === bookmarkUpdateType.ADD) {
+              console.log("user wants to add a bookmark");
+              bookmarksToUpdate.forEach(async (bookmark) => {
+                bookmarksRef.push(
+                  {
+                    categoryId,
+                    tweetId: bookmark,
+                  },
+                  (err) => {
+                    if (err) {
+                      // TODO: log to loggin service
+                      console.log(
+                        `Error creating bookmarks in category ${err}`
+                      );
+                      return res
+                        .status(400)
+                        .send(`Error creating bookmarks in category ${err}`);
                     }
-                  );
-                });
-                // return the updated category
-                return await returnCategory();
-              } else if (updateType === bookmarkUpdateType.DELETE) {
-                console.log("user wants to delete a bookmark");
+                  }
+                );
+              });
+              // return the updated category
+              return await returnCategory();
+              // check the update type
+            } else if (updateType === bookmarkUpdateType.DELETE) {
+              console.log("user wants to delete a bookmark");
+              if (snapshot.exists()) {
                 // traverse through the bookmarks
                 snapshot.forEach((bookmark) => {
                   // check if the category id matches the provided category
@@ -450,15 +450,16 @@ router.patch(
                 // return the updated category
                 return await returnCategory();
               } else {
+                // add the snapsh
+                console.log("User does not have bookmarks object");
                 return res
-                  .status(400)
-                  .send("invalid update type. try another request.");
+                  .status(404)
+                  .send("No bookmarks in this category. Add some first.");
               }
             } else {
-              console.log("User does not have bookmarks object");
               return res
-                .status(404)
-                .send("No bookmarks in this category. Add some first.");
+                .status(400)
+                .send("invalid update type. try another request.");
             }
           },
           (errorObject) => {
