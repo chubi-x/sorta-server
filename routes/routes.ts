@@ -395,7 +395,7 @@ router.patch(
         // push the bookmarks to the bookmarks object
         await bookmarksRef.once(
           "value",
-          async (snapshot) => {
+          async (bookmarksSnapshot) => {
             if (updateType === bookmarkUpdateType.ADD) {
               console.log("user wants to add a bookmark");
               bookmarksToUpdate.forEach(async (bookmark) => {
@@ -422,9 +422,9 @@ router.patch(
               // check the update type
             } else if (updateType === bookmarkUpdateType.DELETE) {
               console.log("user wants to delete a bookmark");
-              if (snapshot.exists()) {
+              if (bookmarksSnapshot.exists()) {
                 // traverse through the bookmarks
-                snapshot.forEach((bookmark) => {
+                bookmarksSnapshot.forEach((bookmark) => {
                   // check if the category id matches the provided category
                   console.log({ bookmark: bookmark.val() });
                   bookmarksToUpdate.forEach(async (bookmarkToDelete) => {
