@@ -3,9 +3,6 @@ import { TwitterApi } from "twitter-api-v2";
 import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types";
 import { DataSnapshot } from "@firebase/database-types";
 import dotenv from "dotenv";
-import session from "express-session";
-import cookieParser from "cookie-parser";
-
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
 
@@ -25,23 +22,6 @@ const usersRef = firebaseDb.ref("sorta").child("users");
 
 // configure env variable
 dotenv.config();
-
-// cookie age
-const threeDays = 1000 * 60 * 60 * 72;
-// session middleware
-router.use(
-  session({
-    secret: process.env.SESSION_SECRET!,
-    saveUninitialized: true,
-    cookie: {
-      maxAge: threeDays,
-      httpOnly: false,
-    },
-    resave: true,
-  })
-);
-// set cookie parser
-router.use(cookieParser());
 
 router.get("/", (req: Request, res: Response) => {
   return res.redirect("/authorize");
