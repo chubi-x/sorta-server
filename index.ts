@@ -2,15 +2,14 @@ import express, { Express } from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
 import cookieParser from "cookie-parser";
-
 import { router } from "./routes/routes";
 // initialize express app
-const app: Express = express();
+const app: Express = express(),
+  // cookie age
+  threeDays = 1000 * 60 * 60 * 72;
 // use body parser
 app.use(bodyParser.json());
 
-// cookie age
-const threeDays = 1000 * 60 * 60 * 72;
 // session middleware
 app.use(
   session({
