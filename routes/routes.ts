@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
+import ResponseHandler from "../services/responseHandlers.js"
 
 // error variable
 const NO_SESSION_ID = "User does not have a session.";
@@ -62,10 +63,9 @@ router.get("/authorize", async (req: Request, res: Response) => {
     req.session.oAuth = {
       ...authLink,
     };
-    return res.status(200).json({ url: req.session.oAuth.url });
+    ResponseHandler.requestSuccessful(res, { url: req.session.oAuth.url });
   } catch (err) {
-    //  TODO:  return the error to a logging service
-    res.status(400).end("could not generate auth link");
+    ResponseHandler.serverError(res, "could not generate auth link");
     console.log("could not generate auth link" + err);
   }
 });
@@ -90,7 +90,7 @@ router.get("/me", async (req: Request, res: Response) => {
         .status(400)
         .end("Stored tokens didn't match! Try logging in again.");
     }
-    //get persistent access tokens
+    // get persistent access tokens
     // create a client from temporary tokens
     const client = new TwitterApi({
       clientId: process.env.CLIENT_ID!,
@@ -150,11 +150,8 @@ router.get("/me", async (req: Request, res: Response) => {
         }
       });
     } catch (err) {
-      //  TODO:  return this to a logging service
       console.log(err);
-      return res
-        .status(400)
-        .send("An error occured while logging you in. please try again. ");
+      ResponseHandler.serverError(res, "An error occured while logging you in. Please try again.");
     }
   } else {
     return res.redirect(303, "/authorize");
@@ -164,9 +161,7 @@ router.get("/me", async (req: Request, res: Response) => {
 // get user info
 router.get("/user", (req: Request, res: Response) => {
   try {
-    // user must have session
     const userId = req.session.userId;
-
     if (userId) {
       // retrieve user from db
       const userRef = usersRef.child(userId);
@@ -180,6 +175,7 @@ router.get("/user", (req: Request, res: Response) => {
       return res.redirect("/authorize");
     }
   } catch (err) {
+    ResponseHandler.serverError(res);
     console.log(
       `There was an error accessing this endpoint. see below\n ${err}`
     );
@@ -202,9 +198,10 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
           const user = snapshot.val();
           const accessToken = user.accessToken;
           const newTwitterClient = new TwitterApi(accessToken);
+        
           // get and return the users bookmarks
           const bookmarks = await newTwitterClient.v2.bookmarks();
-          return res.status(200).json({ bookmarks });
+          ResponseHandler.requestSuccessful(res, { bookmarks });
         },
         (errorObject) => {
           // TODO: log error to logging serivce
@@ -243,10 +240,7 @@ router.delete(
             const accessToken = snapshot.val().accessToken;
             const newTwitterClient = new TwitterApi(accessToken);
             await newTwitterClient.v2.deleteBookmark(bookmarkedTweetId);
-            console.log("bookmark deleted successfully");
-            return res
-              .status(200)
-              .json({ message: "bookmark deleted successfully!" });
+            ResponseHandler.requestSuccessful(res)
           } catch (err) {
             // TODO: log error to logging service
             console.log(err);
@@ -328,9 +322,7 @@ router.get("/categories", async (req: Request, res: Response) => {
           console.log(
             `error accessing categories \n ${errorObject.name} : ${errorObject.message}`
           );
-          return res
-            .status(409)
-            .send("There was an error accessing your categories");
+          ResponseHandler.clientError(res, "There was an error accessing your categories", 409);
         }
       );
     } else {
@@ -364,14 +356,14 @@ router.post("/category", async (req: Request, res: Response) => {
           if (err) {
             //TODO: Log to logging service
             console.log(`error creating category \n ${err}`);
-            return res.status(409).send("error creating category");
+            ResponseHandler.serverError(res);
           }
         }
       );
       categoryRef.child(categoryId!).once(
         "value",
         (snapshot) => {
-          return res.status(201).json({ id: categoryId, data: snapshot.val() });
+          ResponseHandler.requestSuccessful(res, { id: categoryId, data: snapshot.val() }, 201);
         },
         (errObject) => {
           // TODO: log to logging service
@@ -409,20 +401,18 @@ router.patch("/category/:categoryId", async (req: Request, res: Response) => {
           if (err) {
             // TODO: log error to logging service
             console.log(err);
-            return res.status(400).send("Error updating category. try again");
+            ResponseHandler.clientError(res, "Error updating category");
           }
         }
       );
-      return res.status(200).send({ message: "Category updated successfully" });
+      ResponseHandler.requestSuccessful(res);
     } else {
       return res.redirect(303, "/authorize");
     }
   } catch (err) {
     // TODO: log to logging service
-    console.log(err);
-    return res
-      .status(400)
-      .send("There was an error accessing this endpoint. please try again.");
+    console.log(`error updating category \n ${err}`);
+    ResponseHandler.serverError(res);
   }
 });
 // route to update a category's bookmarks
@@ -445,7 +435,6 @@ router.patch(
           "value",
           async (bookmarksSnapshot) => {
             if (updateType === bookmarkUpdateType.ADD) {
-              console.log("user wants to add a bookmark");
               bookmarksToUpdate.forEach(async (bookmark) => {
                 bookmarksRef.push(
                   {
@@ -458,18 +447,14 @@ router.patch(
                       console.log(
                         `Error creating bookmarks in category ${err}`
                       );
-                      return res
-                        .status(400)
-                        .send(`Error creating bookmarks in category ${err}`);
+                      ResponseHandler.clientError(res, "Error creating bookmarks in category");
                     }
                   }
                 );
               });
-              // return success message
-              return res.status(200).send("bookmarks added successfully");
+              ResponseHandler.requestSuccessful(res);
               // check the update type
             } else if (updateType === bookmarkUpdateType.DELETE) {
-              console.log("user wants to delete a bookmark");
               if (bookmarksSnapshot.exists()) {
                 // traverse through the bookmarks
                 bookmarksSnapshot.forEach((bookmark) => {
@@ -486,27 +471,19 @@ router.patch(
                           console.log(
                             `Error removing bookmark see description below: \n ${err}`
                           );
-                          return res.send(
-                            "There was an error removing this bookmark. please try again."
-                          );
+                          ResponseHandler.clientError(res, "Error removing bookmark");
                         }
                       });
                     }
                   });
                 });
-                // return success message
-                return res.status(200).send("bookmarks removed successfully");
+                ResponseHandler.requestSuccessful(res);
               } else {
-                // add the snapsh
                 console.log("User does not have bookmarks object");
-                return res
-                  .status(404)
-                  .send("No bookmarks in this category. Add some first.");
+                ResponseHandler.clientError(res, "No bookmarks in this category.", 404);
               }
             } else {
-              return res
-                .status(400)
-                .send("invalid update type. try another request.");
+              ResponseHandler.clientError(res, "Invalid update type. Try another request.");
             }
           },
           (errorObject) => {
@@ -514,20 +491,15 @@ router.patch(
             console.log(
               `error accessing bookmarks \n ${errorObject.name} : ${errorObject.message}`
             );
-            return res
-              .status(409)
-              .send("There was an error accessing your bookmark");
+            ResponseHandler.clientError(res, "Error accessing bookmarks", 409);
           }
         );
       } else {
         return res.redirect(303, "/authorize");
       }
     } catch (err) {
-      // TODO: log to logging service
       console.log(err);
-      return res
-        .status(400)
-        .send("There was an error accessing this endpoint. please try again.");
+      ResponseHandler.serverError(res);
     }
   }
 );
@@ -584,9 +556,7 @@ router.delete(
       console.log(
         `There was an error accessing delete categories endpoint. see full error below: \n ${err}`
       );
-      return res
-        .status(400)
-        .send("There was an error accessing this endpoint. Please try again");
+      ResponseHandler.serverError(res);
     }
   }
 );
