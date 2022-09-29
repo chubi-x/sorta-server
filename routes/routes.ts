@@ -63,7 +63,7 @@ router.get("/authorize", async (req: Request, res: Response) => {
     req.session.oAuth = {
       ...authLink,
     };
-    ResponseHandler.requestSuccessful(res, { url: req.session.oAuth.url });
+    ResponseHandler.requestSuccessful({ res, payload: { url: req.session.oAuth.url }});
   } catch (err) {
     ResponseHandler.serverError(res, "could not generate auth link");
     console.log("could not generate auth link" + err);
@@ -201,7 +201,7 @@ router.get("/bookmarks", async (req: Request, res: Response) => {
         
           // get and return the users bookmarks
           const bookmarks = await newTwitterClient.v2.bookmarks();
-          ResponseHandler.requestSuccessful(res, { bookmarks });
+          ResponseHandler.requestSuccessful({ res, payload: { bookmarks } });
         },
         (errorObject) => {
           // TODO: log error to logging serivce
@@ -240,7 +240,7 @@ router.delete(
             const accessToken = snapshot.val().accessToken;
             const newTwitterClient = new TwitterApi(accessToken);
             await newTwitterClient.v2.deleteBookmark(bookmarkedTweetId);
-            ResponseHandler.requestSuccessful(res)
+            ResponseHandler.requestSuccessful({ res, message: 'Bookmark deleted successfully' })
           } catch (err) {
             // TODO: log error to logging service
             console.log(err);
@@ -356,14 +356,18 @@ router.post("/category", async (req: Request, res: Response) => {
           if (err) {
             //TODO: Log to logging service
             console.log(`error creating category \n ${err}`);
-            ResponseHandler.serverError(res);
+            ResponseHandler.clientError(res, 'Error creating category', 409);
           }
         }
       );
       categoryRef.child(categoryId!).once(
         "value",
         (snapshot) => {
-          ResponseHandler.requestSuccessful(res, { id: categoryId, data: snapshot.val() }, 201);
+          ResponseHandler.requestSuccessful({ 
+            res, 
+            payload: { id: categoryId, data: snapshot.val() }, 
+            status: 201, 
+            message: 'Category created successfully' });
         },
         (errObject) => {
           // TODO: log to logging service
@@ -405,14 +409,14 @@ router.patch("/category/:categoryId", async (req: Request, res: Response) => {
           }
         }
       );
-      ResponseHandler.requestSuccessful(res);
+      ResponseHandler.requestSuccessful({ res, message: 'Category updated successfully'});
     } else {
       return res.redirect(303, "/authorize");
     }
   } catch (err) {
     // TODO: log to logging service
     console.log(`error updating category \n ${err}`);
-    ResponseHandler.serverError(res);
+    ResponseHandler.clientError(res, "Error updating category");
   }
 });
 // route to update a category's bookmarks
@@ -452,7 +456,7 @@ router.patch(
                   }
                 );
               });
-              ResponseHandler.requestSuccessful(res);
+              ResponseHandler.requestSuccessful({ res, message: 'Bookmarks added successfully'});
               // check the update type
             } else if (updateType === bookmarkUpdateType.DELETE) {
               if (bookmarksSnapshot.exists()) {
@@ -477,7 +481,7 @@ router.patch(
                     }
                   });
                 });
-                ResponseHandler.requestSuccessful(res);
+                ResponseHandler.requestSuccessful({ res, message: 'Bookmarks removed successfully' });
               } else {
                 console.log("User does not have bookmarks object");
                 ResponseHandler.clientError(res, "No bookmarks in this category.", 404);
@@ -499,7 +503,7 @@ router.patch(
       }
     } catch (err) {
       console.log(err);
-      ResponseHandler.serverError(res);
+      ResponseHandler.clientError(res, "Error updating bookmarks");
     }
   }
 );
@@ -556,7 +560,7 @@ router.delete(
       console.log(
         `There was an error accessing delete categories endpoint. see full error below: \n ${err}`
       );
-      ResponseHandler.serverError(res);
+      ResponseHandler.clientError(res, "Error deleting category");
     }
   }
 );

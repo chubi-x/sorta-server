@@ -27,7 +27,7 @@ class ResponseHandler {
    * A method used to send client errors
    * @param {object} res - The HTTP response object.
    * @param {String} message - The error message you want to set.
-   * @param {number} statusCode - The status code of the client error.
+   * @param {number} status - The status code of the client error.
    * @returns {object} res - The response object.
    */
    static clientError(res: Response, message: string, status = DEFAULT_CLIENT_ERROR_STATUS_CODE): Response {
@@ -44,10 +44,15 @@ class ResponseHandler {
    * @param {number} status = The status code of the request.
    * @returns {object} res - The response object.
    */
-     static requestSuccessful(res: Response, payload?: object, status = DEFAULT_SUCCESS_STATUS_CODE) {
+     static requestSuccessful({ res, payload, message,  status = DEFAULT_SUCCESS_STATUS_CODE }: {
+        res: Response;
+        payload?: any;
+        message?: string;
+        status?: number;
+     }) {
       const responseObject = {
         success: true,
-        message: DEFAULT_SUCCESS_MESSAGE,
+        message: message ?? DEFAULT_SUCCESS_MESSAGE,
       }
       if (!payload) {
         return res.status(status).send(responseObject);
