@@ -6,6 +6,10 @@ import dotenv from "dotenv";
 import { userClient } from "../TwitterClient.js";
 import { firebaseDb } from "../auth/firebase";
 import hasSession from "../middleware/hasSession.js";
+import ResponseHandler from "../services/responseHandlers.js"
+
+// error variable
+const NO_SESSION_ID = "User does not have a session.";
 
 // update type enum
 enum bookmarkUpdateType {
@@ -40,10 +44,9 @@ router.get("/authorize", async (req: Request, res: Response) => {
     req.session.oAuth = {
       ...authLink,
     };
-    return res.status(200).json({ url: req.session.oAuth.url });
+    ResponseHandler.requestSuccessful({ res, payload: { url: req.session.oAuth.url }});
   } catch (err) {
-    //  TODO:  return the error to a logging service
-    res.status(400).end("could not generate auth link");
+    ResponseHandler.serverError(res, "could not generate auth link");
     console.log("could not generate auth link" + err);
   }
 });
@@ -68,7 +71,7 @@ router.get("/me", async (req: Request, res: Response) => {
         .status(400)
         .end("Stored tokens didn't match! Try logging in again.");
     }
-    //get persistent access tokens
+    // get persistent access tokens
     // create a client from temporary tokens
     const client = new TwitterApi({
       clientId: process.env.CLIENT_ID!,
@@ -128,11 +131,8 @@ router.get("/me", async (req: Request, res: Response) => {
         }
       });
     } catch (err) {
-      //  TODO:  return this to a logging service
       console.log(err);
-      return res
-        .status(400)
-        .send("An error occured while logging you in. please try again. ");
+      ResponseHandler.serverError(res, "An error occured while logging you in. Please try again.");
     }
   } else {
     return res.redirect(303, "/authorize");
@@ -142,17 +142,19 @@ router.get("/me", async (req: Request, res: Response) => {
 // get user info
 router.get("/user", hasSession, (req: Request, res: Response) => {
   try {
-    // user must have session
     const userId = req.session.userId;
     // retrieve user from db
     const userRef = usersRef.child(userId);
     userRef.once("value", (snapshot) => {
       const userData = snapshot.val();
-      return res.json({
-        user: { id: userId, username: userData.username, pfp: userData.pfp },
+      ResponseHandler.requestSuccessful({ 
+        res, 
+        payload: { user: { id: userId, username: userData.username, pfp: userData.pfp } },
+        message: 'User data retrieved successfully'
       });
     });
   } catch (err) {
+    ResponseHandler.serverError(res);
     console.log(
       `There was an error accessing this endpoint. see below\n ${err}`
     );
@@ -176,7 +178,7 @@ router.get("/bookmarks", hasSession, async (req: Request, res: Response) => {
         const newTwitterClient = new TwitterApi(accessToken);
         // get and return the users bookmarks
         const bookmarks = await newTwitterClient.v2.bookmarks();
-        return res.status(200).json({ bookmarks });
+        ResponseHandler.requestSuccessful({ res, payload: { bookmarks } });
       },
       (errorObject) => {
         // TODO: log error to logging serivce
@@ -210,9 +212,7 @@ router.delete(
           const newTwitterClient = new TwitterApi(accessToken);
           await newTwitterClient.v2.deleteBookmark(bookmarkedTweetId);
           console.log("bookmark deleted successfully");
-          return res
-            .status(200)
-            .json({ message: "bookmark deleted successfully!" });
+          ResponseHandler.requestSuccessful({ res, message: 'Bookmark deleted successfully' })
         } catch (err) {
           // TODO: log error to logging service
           console.log(err);
@@ -281,7 +281,7 @@ router.get("/categories", hasSession, async (req: Request, res: Response) => {
         // fulfill promises
         await Promise.all(promiseList);
         //TODO: return an array of the categories and their bookmarks
-        res.json({ categories: categoriesArray });
+        ResponseHandler.requestSuccessful({ res, payload: { categories: categoriesArray }})
       },
       (errorObject) => {
         // TODO: log to logging service
@@ -319,21 +319,25 @@ router.post("/category", hasSession, async (req: Request, res: Response) => {
         if (err) {
           //TODO: Log to logging service
           console.log(`error creating category \n ${err}`);
-          return res.status(409).send("error creating category");
+          ResponseHandler.clientError(res, 'Error creating category', 409);
         }
       }
     );
     categoryRef.child(categoryId!).once(
       "value",
       (snapshot) => {
-        return res.status(201).json({ id: categoryId, data: snapshot.val() });
+        ResponseHandler.requestSuccessful({ 
+          res, 
+          payload: { id: categoryId, data: snapshot.val() }, 
+          status: 201, 
+          message: 'Category created successfully' });
       },
       (errObject) => {
         // TODO: log to logging service
         console.log(
           `error retrieving the new category \n ${errObject.name} : ${errObject.message}`
         );
-        return res.status(409).send("error retrieving the new category");
+        ResponseHandler.clientError(res, 'Error retrieving the new category', 409);
       }
     );
   } catch (err) {
@@ -362,17 +366,15 @@ router.patch(
           if (err) {
             // TODO: log error to logging service
             console.log(err);
-            return res.status(400).send("Error updating category. try again");
+            ResponseHandler.clientError(res, "Error updating category");
           }
         }
       );
-      return res.status(200).send({ message: "Category updated successfully" });
+    ResponseHandler.requestSuccessful({ res, message: 'Category updated successfully'});
     } catch (err) {
       // TODO: log to logging service
       console.log(err);
-      return res
-        .status(400)
-        .send("There was an error accessing this endpoint. please try again.");
+      ResponseHandler.clientError(res, "Error updating category");
     }
   }
 );
@@ -406,9 +408,7 @@ router.patch(
                   if (err) {
                     // TODO: log to loggin service
                     console.log(`Error creating bookmarks in category ${err}`);
-                    return res
-                      .status(400)
-                      .send(`Error creating bookmarks in category ${err}`);
+                    ResponseHandler.clientError(res, "Error creating bookmarks in category");
                   }
                 }
               );
@@ -443,18 +443,14 @@ router.patch(
                 });
               });
               // return success message
-              return res.status(200).send("bookmarks removed successfully");
+              ResponseHandler.requestSuccessful({ res, message: 'Bookmarks added successfully'});
             } else {
               // add the snapsh
               console.log("User does not have bookmarks object");
-              return res
-                .status(404)
-                .send("No bookmarks in this category. Add some first.");
+              ResponseHandler.clientError(res, "No bookmarks in this category.", 404);
             }
           } else {
-            return res
-              .status(400)
-              .send("invalid update type. try another request.");
+            ResponseHandler.clientError(res, "Invalid update type. Try another request.");
           }
         },
         (errorObject) => {
@@ -468,11 +464,8 @@ router.patch(
         }
       );
     } catch (err) {
-      // TODO: log to logging service
       console.log(err);
-      return res
-        .status(400)
-        .send("There was an error accessing this endpoint. please try again.");
+      ResponseHandler.clientError(res, "Error updating bookmarks");
     }
   }
 );
@@ -524,9 +517,7 @@ router.delete(
       console.log(
         `There was an error accessing delete categories endpoint. see full error below: \n ${err}`
       );
-      return res
-        .status(400)
-        .send("There was an error accessing this endpoint. Please try again");
+      ResponseHandler.clientError(res, "Error deleting category");
     }
   }
 );
