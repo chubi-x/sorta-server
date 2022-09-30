@@ -14,12 +14,12 @@ export async function updateCategoryBookmarks(
 ) {
   try {
     // user must have a session
-    const userId = req.session.userId,
-      categoryId = req.params.categoryId,
-      updateType: bookmarkUpdateType = req.body.updateType,
-      bookmarksToUpdate: [] = req.body.bookmarks,
-      // get a ref to the bookmarks object
-      bookmarksRef = usersRef.child(`${userId}/bookmarks`);
+    const userId = req.session.userId;
+    const categoryId = req.params.categoryId;
+    const updateType: bookmarkUpdateType = req.body.updateType;
+    const bookmarksToUpdate: [] = req.body.bookmarks;
+    // get a ref to the bookmarks object
+    const bookmarksRef = usersRef.child(`${userId}/bookmarks`);
 
     // Category must exist before any operations
     await usersRef
@@ -65,9 +65,13 @@ export async function updateCategoryBookmarks(
                   bookmarksSnapshot.forEach((bookmark) => {
                     // check if the category id matches the provided category
                     bookmarksToUpdate.forEach(async (bookmarkToDelete) => {
+                      const bookmarkCategoryId = bookmark
+                        .child("categoryId")
+                        .val();
+                      const bookmarkTweetId = bookmark.child("tweetId").val();
                       if (
-                        bookmark.child("categoryId").val() === categoryId &&
-                        bookmark.child("tweetId").val() === bookmarkToDelete
+                        bookmarkCategoryId === categoryId &&
+                        bookmarkTweetId === bookmarkToDelete
                       ) {
                         // delete the bookmark
                         await bookmark.ref.remove((err) => {

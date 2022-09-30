@@ -9,10 +9,10 @@ export default async function deleteBookmark(
   usersRef: Reference
 ) {
   try {
-    const bookmarkedTweetId = req.params.bookmarkedTweetId,
-      userId = req.session.userId,
-      // get a db ref
-      userRef = usersRef.child(userId);
+    const bookmarkedTweetId = req.params.bookmarkedTweetId;
+    const userId = req.session.userId;
+    // get a db ref
+    const userRef = usersRef.child(userId);
     await userRef.once(
       "value",
       async (snapshot) => {

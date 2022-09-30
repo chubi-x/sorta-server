@@ -8,12 +8,12 @@ export async function getCategories(
   usersRef: Reference
 ) {
   try {
-    const userId = req.session.userId,
-      categoriesArray: any[] = [],
-      // get a ref to user's bookmarks
-      bookmarksRef = usersRef.child(`${userId}/bookmarks`),
-      // retrieve user user categories from db
-      categoryRef = usersRef.child(`${userId}/categories`);
+    const userId = req.session.userId;
+    const categoriesArray: any[] = [];
+    // get a ref to user's bookmarks
+    const bookmarksRef = usersRef.child(`${userId}/bookmarks`);
+    // retrieve user user categories from db
+    const categoryRef = usersRef.child(`${userId}/categories`);
 
     await categoryRef.once(
       "value",

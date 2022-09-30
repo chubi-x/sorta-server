@@ -9,28 +9,28 @@ export async function deleteCategory(
 ) {
   try {
     // list of bookmark removal promises
-    const bookmarkRemovalPromiseList: Promise<any>[] = [],
-      userId = req.session.userId,
-      categoryId = req.params.categoryId,
-      // get a ref to the specified category and remove it
-      categoryRef = usersRef.child(`${userId}/categories/${categoryId}`),
-      // async function to delete bookmarks
-      deleteBookmark = async (bookmarkSnapshot: DataSnapshot) => {
-        if (bookmarkSnapshot.child("categoryId").val() === categoryId) {
-          await bookmarkSnapshot.ref.remove((err) => {
-            // TODO: log to logging service
-            if (err) {
-              console.log(
-                `Error deleting category bookmarks. see details below: \n ${err}`
-              );
-              ResponseHandler.serverError(
-                res,
-                "Error deleting category bookmarks. Please try again."
-              );
-            }
-          });
-        }
-      };
+    const bookmarkRemovalPromiseList: Promise<any>[] = [];
+    const userId = req.session.userId;
+    const categoryId = req.params.categoryId;
+    // get a ref to the specified category and remove it
+    const categoryRef = usersRef.child(`${userId}/categories/${categoryId}`);
+    // async function to delete bookmarks
+    const deleteBookmark = async (bookmarkSnapshot: DataSnapshot) => {
+      if (bookmarkSnapshot.child("categoryId").val() === categoryId) {
+        await bookmarkSnapshot.ref.remove((err) => {
+          // TODO: log to logging service
+          if (err) {
+            console.log(
+              `Error deleting category bookmarks. see details below: \n ${err}`
+            );
+            ResponseHandler.serverError(
+              res,
+              "Error deleting category bookmarks. Please try again."
+            );
+          }
+        });
+      }
+    };
     await categoryRef.once("value", async (categorySnapshot) => {
       if (categorySnapshot.exists()) {
         // remove the category
@@ -55,7 +55,7 @@ export async function deleteCategory(
               bookmarkRemovalPromiseList.push(deleteBookmark(bookmarkSnapshot));
             });
             // fulfill bookmark removal promises
-            await Promise.all(bookmarkRemovalPromiseList);
+            await Promise.allSettled(bookmarkRemovalPromiseList);
             // send success message
             ResponseHandler.requestSuccessful({
               res,

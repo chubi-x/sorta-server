@@ -1,6 +1,6 @@
 import express, { Request, Response, Router } from "express";
 import { usersRef } from "../../db/firebase";
-import { hasSession } from "../../middleware/index";
+import { hasSession } from "../../middleware";
 import {
   getCategories,
   createCategory,

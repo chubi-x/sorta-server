@@ -44,9 +44,9 @@ authRouter.get("/me", async (req: Request, res: Response) => {
   try {
     if (req.session.oAuth) {
       // get oauth token and verifier
-      const { state, code } = req.query,
-        // retrieve oath_token_secret from session store
-        { codeVerifier, state: sessionState } = req.session.oAuth;
+      const { state, code } = req.query;
+      // retrieve oath_token_secret from session store
+      const { codeVerifier, state: sessionState } = req.session.oAuth;
 
       // check if request was denied and do something
       if (!codeVerifier || !state || !sessionState || !code) {

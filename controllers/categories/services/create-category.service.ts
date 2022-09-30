@@ -10,17 +10,18 @@ export async function createCategory(
   usersRef: Reference
 ) {
   try {
-    const userId = req.session.userId,
-      // retrieve user from db
-      categoryRef = usersRef.child(userId).child("categories"),
-      // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
-      categoryId = nanoid(),
-      category = categoryRef.child(categoryId);
+    const userId = req.session.userId;
+    // retrieve user from db
+    const categoryRef = usersRef.child(userId).child("categories");
+    // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
+    const categoryId = nanoid();
+    const category = categoryRef.child(categoryId);
+    const { name, description, image } = req.body;
     await category.set(
       {
-        name: req.body.name,
-        description: req.body.description,
-        image: req.body.image,
+        name,
+        description,
+        image,
       },
       (err) => {
         if (err) {

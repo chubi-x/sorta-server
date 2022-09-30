@@ -8,17 +8,18 @@ export async function updateCategoryAttributes(
   usersRef: Reference
 ) {
   try {
-    const userId = req.session.userId,
-      categoryId = req.params.categoryId,
-      categoryRef = usersRef.child(`${userId}/categories/${categoryId}`);
+    const userId = req.session.userId;
+    const categoryId = req.params.categoryId;
+    const categoryRef = usersRef.child(`${userId}/categories/${categoryId}`);
 
     await categoryRef.once("value", async (categorySnapshot) => {
       if (categorySnapshot.exists()) {
+        const { name, description, image } = req.body;
         await categoryRef.update(
           {
-            name: req.body.name,
-            description: req.body.description,
-            image: req.body.image,
+            name,
+            description,
+            image,
           },
           (err) => {
             if (err) {
