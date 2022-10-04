@@ -2,7 +2,12 @@ import express, { Express } from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
 import cookieParser from "cookie-parser";
-import { router } from "./routes/routes";
+import {
+  bookmarkRouter,
+  categoryRouter,
+  authRouter,
+  userRouter,
+} from "./controllers/index";
 // initialize express app
 const app: Express = express(),
   // cookie age
@@ -22,14 +27,18 @@ app.use(
     resave: true,
   })
 );
-// set cookie parser
+// use cookie parser
 app.use(cookieParser());
 
 // use routes
-app.use(router);
+app.use("/", authRouter);
+app.use("/user", userRouter);
+app.use("/bookmarks", bookmarkRouter);
+app.use("/categories", categoryRouter);
 
 // PORT
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);
 });
+

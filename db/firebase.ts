@@ -14,4 +14,5 @@ try {
   //  TODO: return the error to a loggin service
   console.log(err);
 }
-export const firebaseDb = firebase.database();
+export const usersRef = firebase.database().ref("sorta/users");
+
