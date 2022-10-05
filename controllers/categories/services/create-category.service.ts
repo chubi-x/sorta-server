@@ -31,7 +31,7 @@ export async function createCategory(
         }
       }
     );
-    categoryRef.child(categoryId!).once(
+    await categoryRef.child(categoryId!).once(
       "value",
       (snapshot) => {
         ResponseHandler.requestSuccessful({
