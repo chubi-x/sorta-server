@@ -19,13 +19,15 @@ export async function updateCategoryAttributes(
         const updateObject: UpdateCategoryAttributesDto = {};
 
         // check for and update each attribute seperately
-        name
-          ? (updateObject.name = name)
-          : description
-          ? (updateObject.description = description)
-          : image
-          ? (updateObject.image = image)
-          : null;
+        if (name) {
+          updateObject.name = name;
+        }
+        if (description) {
+          updateObject.description = description;
+        }
+        if (image) {
+          updateObject.image = image;
+        }
 
         if (name || description || image) {
           await categoryRef.update(updateObject, (err) => {
