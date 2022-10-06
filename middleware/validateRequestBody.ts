@@ -10,7 +10,7 @@ import { ResponseHandler } from "../services";
 
 /**
  * Function to validate request bodies
- * @param {CreateCategory | UpdateCategoryAttributes} dto - The dto object
+ * @param {CreateCategoryDto | UpdateCategoryAttributesDto | UpdateCategoryBookmarksDto } dto - The dto object
  * @returns {object} response object
  */
 export function validateRequestBody(
