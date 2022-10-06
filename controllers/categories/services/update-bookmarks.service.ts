@@ -1,12 +1,7 @@
 import { Request, Response } from "express";
 import { Reference } from "@firebase/database-types";
 import { ResponseHandler } from "../../../services";
-
-// update type enum
-enum bookmarkUpdateType {
-  ADD = "add",
-  DELETE = "delete",
-}
+import { bookmarkUpdateType } from "../dto";
 export async function updateCategoryBookmarks(
   req: Request,
   res: Response,
@@ -17,10 +12,9 @@ export async function updateCategoryBookmarks(
     const userId = req.session.userId;
     const categoryId = req.params.categoryId;
     const updateType: bookmarkUpdateType = req.body.updateType;
-    const bookmarksToUpdate: [] = req.body.bookmarks;
+    const bookmarksToUpdate: string[] = req.body.bookmarks;
     // get a ref to the bookmarks object
     const bookmarksRef = usersRef.child(`${userId}/bookmarks`);
-
     // Category must exist before any operations
     await usersRef
       .child(`${userId}/categories/${categoryId}`)
@@ -87,6 +81,7 @@ export async function updateCategoryBookmarks(
                           }
                         });
                       } else {
+                        console.log("wrong bookmark id");
                         ERROR_FLAG = true;
                       }
                     });
@@ -134,7 +129,9 @@ export async function updateCategoryBookmarks(
         }
       });
   } catch (err) {
-    console.log(err);
+    // TODO: log to logging service
+    console.log(`Error PATCHING category bookmarks, see below : \n ${err}`);
     return ResponseHandler.clientError(res, "Error updating bookmarks");
   }
 }
+

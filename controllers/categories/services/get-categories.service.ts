@@ -52,7 +52,7 @@ export async function getCategories(
         // fulfill promises
         await Promise.all(promiseList);
         //TODO: return an array of the categories and their bookmarks
-        ResponseHandler.requestSuccessful({
+        return ResponseHandler.requestSuccessful({
           res,
           payload: { categories: categoriesArray },
         });
@@ -62,7 +62,7 @@ export async function getCategories(
         console.log(
           `error accessing categories \n ${errorObject.name} : ${errorObject.message}`
         );
-        ResponseHandler.serverError(
+        return ResponseHandler.serverError(
           res,
           "There was an error accessing your categories"
         );
@@ -72,9 +72,10 @@ export async function getCategories(
     console.log(
       `There was an error accessing get categories endpoint. see error below \n ${err}`
     );
-    ResponseHandler.serverError(
+    return ResponseHandler.serverError(
       res,
       "There was an error accessing your categories"
     );
   }
 }
+

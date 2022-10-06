@@ -26,13 +26,13 @@ export class ResponseHandler {
   /**
    * A method used to send client errors
    * @param {object} res - The HTTP response object.
-   * @param {String} message - The error message you want to set.
+  //  * @param {String | object} message - The error message you want to set.
    * @param {number} status - The status code of the client error.
    * @returns {object} res - The response object.
    */
   static clientError(
     res: Response,
-    message: string,
+    message: string | object,
     status = DEFAULT_CLIENT_ERROR_STATUS_CODE
   ): Response {
     return res.status(status).json({

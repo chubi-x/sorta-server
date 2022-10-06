@@ -27,14 +27,18 @@ export async function createCategory(
         if (err) {
           //TODO: Log to logging service
           console.log(`error creating category \n ${err}`);
-          ResponseHandler.clientError(res, "Error creating category", 409);
+          return ResponseHandler.clientError(
+            res,
+            "Error creating category",
+            409
+          );
         }
       }
     );
     await categoryRef.child(categoryId!).once(
       "value",
       (snapshot) => {
-        ResponseHandler.requestSuccessful({
+        return ResponseHandler.requestSuccessful({
           res,
           payload: { id: categoryId, data: snapshot.val() },
           status: 201,
@@ -46,7 +50,7 @@ export async function createCategory(
         console.log(
           `error retrieving the new category \n ${errObject.name} : ${errObject.message}`
         );
-        ResponseHandler.clientError(
+        return ResponseHandler.clientError(
           res,
           "Error retrieving the new category",
           409
@@ -57,7 +61,7 @@ export async function createCategory(
     console.log(
       `Error accessing create category endpoint. see below: \n ${err}`
     );
-    ResponseHandler.serverError(
+    return ResponseHandler.serverError(
       res,
       "Error creating category. Please try again."
     );
