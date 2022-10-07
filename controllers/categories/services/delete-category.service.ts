@@ -23,7 +23,7 @@ export async function deleteCategory(
             console.log(
               `Error deleting category bookmarks. see details below: \n ${err}`
             );
-            ResponseHandler.serverError(
+            return ResponseHandler.serverError(
               res,
               "Error deleting category bookmarks. Please try again."
             );
@@ -40,7 +40,7 @@ export async function deleteCategory(
             console.log(
               `Error deleting category. see details below: \n ${err}`
             );
-            ResponseHandler.serverError(
+            return ResponseHandler.serverError(
               res,
               "Error deleting category. Please try again."
             );
@@ -57,22 +57,23 @@ export async function deleteCategory(
             // fulfill bookmark removal promises
             await Promise.allSettled(bookmarkRemovalPromiseList);
             // send success message
-            ResponseHandler.requestSuccessful({
+            return ResponseHandler.requestSuccessful({
               res,
               message: "category deleted successfully.",
             });
           });
       } else {
-        ResponseHandler.clientError(res, "Category does not exist.");
+        return ResponseHandler.clientError(res, "Category does not exist.");
       }
     });
   } catch (err) {
     console.log(
       `There was an error accessing delete categories endpoint. see full error below: \n ${err}`
     );
-    ResponseHandler.clientError(
+    return ResponseHandler.clientError(
       res,
       "Error deleting category. Please try again."
     );
   }
 }
+

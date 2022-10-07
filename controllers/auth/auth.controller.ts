@@ -30,13 +30,13 @@ authRouter.get("/authorize", async (req: Request, res: Response) => {
     req.session.oAuth = {
       ...authLink,
     };
-    ResponseHandler.requestSuccessful({
+    return ResponseHandler.requestSuccessful({
       res,
       payload: { url: req.session.oAuth.url },
     });
   } catch (err) {
-    ResponseHandler.serverError(res, "could not generate auth link");
     console.log("could not generate auth link \n" + err);
+    return ResponseHandler.serverError(res, "could not generate auth link");
   }
 });
 
@@ -50,13 +50,13 @@ authRouter.get("/me", async (req: Request, res: Response) => {
 
       // check if request was denied and do something
       if (!codeVerifier || !state || !sessionState || !code) {
-        ResponseHandler.serverError(
+        return ResponseHandler.serverError(
           res,
           "You denied the connection or your session expired! Try logging in again."
         );
       }
       if (state !== sessionState) {
-        ResponseHandler.serverError(
+        return ResponseHandler.serverError(
           res,
           "Stored tokens didn't match! Try logging in again."
         );
@@ -124,7 +124,7 @@ authRouter.get("/me", async (req: Request, res: Response) => {
     }
   } catch (err) {
     console.log(`Error accessing /me endpoint. see below: \n ${err}`);
-    ResponseHandler.serverError(
+    return ResponseHandler.serverError(
       res,
       "An error occured while logging you in. Please try again."
     );
@@ -132,3 +132,4 @@ authRouter.get("/me", async (req: Request, res: Response) => {
 });
 
 export { authRouter };
+

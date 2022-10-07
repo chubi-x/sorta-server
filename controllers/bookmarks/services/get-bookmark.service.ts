@@ -19,7 +19,7 @@ export default async function getBookmarks(
           accessToken = user.accessToken,
           newTwitterClient = new TwitterApi(accessToken),
           bookmarks = await newTwitterClient.v2.bookmarks();
-        ResponseHandler.requestSuccessful({
+        return ResponseHandler.requestSuccessful({
           res,
           payload: { bookmarks },
           message: "Bookmarks retrieved successfully",
@@ -32,7 +32,7 @@ export default async function getBookmarks(
             errorObject.name +
             errorObject.message
         );
-        ResponseHandler.serverError(
+        return ResponseHandler.serverError(
           res,
           "Error. could not retrieve your data. please try again."
         );
@@ -41,7 +41,7 @@ export default async function getBookmarks(
   } catch (err) {
     // TODO: log to logging service
     console.log(`Error accessing get bookmarks endpoint. see below \n ${err}`);
-    ResponseHandler.serverError(
+    return ResponseHandler.serverError(
       res,
       "Error. could not access this endpoint. please try again."
     );

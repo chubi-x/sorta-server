@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Reference } from "@firebase/database-types";
 import { ResponseHandler } from "../../../services";
+import { UpdateCategoryAttributesDto } from "../dto";
 
 export async function updateCategoryAttributes(
   req: Request,
@@ -15,13 +16,21 @@ export async function updateCategoryAttributes(
     await categoryRef.once("value", async (categorySnapshot) => {
       if (categorySnapshot.exists()) {
         const { name, description, image } = req.body;
-        await categoryRef.update(
-          {
-            name,
-            description,
-            image,
-          },
-          (err) => {
+        const updateObject: UpdateCategoryAttributesDto = {};
+
+        // check for and update each attribute seperately
+        if (name) {
+          updateObject.name = name;
+        }
+        if (description) {
+          updateObject.description = description;
+        }
+        if (image) {
+          updateObject.image = image;
+        }
+
+        if (name || description || image) {
+          await categoryRef.update(updateObject, (err) => {
             if (err) {
               // TODO: log error to logging service
               console.log(
@@ -32,15 +41,18 @@ export async function updateCategoryAttributes(
                 "Error updating category"
               );
             }
-          }
-        );
-        return ResponseHandler.requestSuccessful({
-          res,
-          message: "Category updated successfully",
-        });
+          });
+          return ResponseHandler.requestSuccessful({
+            res,
+            message: "Category updated successfully",
+          });
+        } else {
+          return ResponseHandler.clientError(
+            res,
+            "You did not specify an attribute to change."
+          );
+        }
       } else {
-        console.log("category does not exist");
-
         return ResponseHandler.clientError(res, "Category does not exist.");
       }
     });
@@ -55,3 +67,4 @@ export async function updateCategoryAttributes(
     );
   }
 }
+

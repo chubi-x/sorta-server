@@ -19,7 +19,7 @@ export default async function deleteBookmark(
         const accessToken = snapshot.val().accessToken;
         const newTwitterClient = new TwitterApi(accessToken);
         await newTwitterClient.v2.deleteBookmark(bookmarkedTweetId);
-        ResponseHandler.requestSuccessful({
+        return ResponseHandler.requestSuccessful({
           res,
           message: "Bookmark deleted successfully",
         });
@@ -29,7 +29,7 @@ export default async function deleteBookmark(
         console.log(
           `an error occured while deleting a bookmark. \n${errorObject.name} \n ${errorObject.message}`
         );
-        ResponseHandler.serverError(
+        return ResponseHandler.serverError(
           res,
           "an error occured while deleting your bookmark. please try again."
         );
@@ -39,7 +39,7 @@ export default async function deleteBookmark(
     console.log(
       `Error accessing delete bookmarks ednpoint. see below : \n ${err}`
     );
-    ResponseHandler.serverError(
+    return ResponseHandler.serverError(
       res,
       "Error. could not access this endpoint. Please try again."
     );
