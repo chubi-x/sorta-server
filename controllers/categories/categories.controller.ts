@@ -14,7 +14,7 @@ import {
   addBookmarksToCategory,
   deleteBookmarksFromCategory,
   deleteCategory,
-} from "./services/index";
+} from "./services";
 
 const categoryRouter: Router = express.Router();
 

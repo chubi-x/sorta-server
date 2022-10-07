@@ -7,7 +7,7 @@ import {
   categoryRouter,
   authRouter,
   userRouter,
-} from "./controllers/index";
+} from "./controllers";
 // initialize express app
 const app: Express = express(),
   // cookie age

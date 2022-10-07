@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { TwitterApi } from "twitter-api-v2";
 import { Reference } from "@firebase/database-types";
-import { ResponseHandler } from "../../../services/index";
+import { ResponseHandler } from "../../../services";
 
 export default async function getBookmarks(
   req: Request,
