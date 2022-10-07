@@ -20,6 +20,7 @@
     "express-session": "^1.17.3",
     "firebase-admin": "^11.0.1",
     "nanoid": "^2.1.11",
+    "nodemon": "^2.0.20",
     "twitter-api-v2": "^1.12.7"
   },
   "devDependencies": {

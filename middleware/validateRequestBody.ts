@@ -1,23 +1,24 @@
 import { Request, Response, NextFunction } from "express";
 import { validate } from "class-validator";
 import {
-  bookmarkUpdateType,
   CreateCategoryDto,
   UpdateCategoryAttributesDto,
-  UpdateCategoryBookmarksDto,
+  AddBookmarksToCategoryDto,
+  DeleteBookmarksFromCategoryDto,
 } from "../controllers/categories/dto";
 import { ResponseHandler } from "../services";
 
 /**
  * Function to validate request bodies
- * @param {CreateCategoryDto | UpdateCategoryAttributesDto | UpdateCategoryBookmarksDto } dto - The dto object
+ * @param {CreateCategoryDto | UpdateCategoryAttributesDto | AddBookmarkToCategoryDto } dto - The dto object
  * @returns {object} response object
  */
 export function validateRequestBody(
   dto:
     | CreateCategoryDto
     | UpdateCategoryAttributesDto
-    | UpdateCategoryBookmarksDto
+    | AddBookmarksToCategoryDto
+    | DeleteBookmarksFromCategoryDto
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (
@@ -28,11 +29,12 @@ export function validateRequestBody(
       dto.name = name;
       dto.description = description;
       dto.image = image;
-    } else if (dto instanceof UpdateCategoryBookmarksDto) {
-      const updateType: bookmarkUpdateType = req.body.updateType;
-      const bookmarksToUpdate: string[] = req.body.bookmarks;
-      dto.updateType = updateType;
-      dto.bookmarksToUpdate = bookmarksToUpdate;
+    } else if (dto instanceof AddBookmarksToCategoryDto) {
+      const bookmarksToAdd: string[] = req.body.bookmarks;
+      dto.bookmarksToAdd = bookmarksToAdd;
+    } else if (dto instanceof DeleteBookmarksFromCategoryDto) {
+      const bookmarkIdsToDelete: string[] = req.body.bookmarkIds;
+      dto.bookmarkIdsToDelete = bookmarkIdsToDelete;
     }
     const validationErrors = await validate(dto, {
       validationError: { target: false },
@@ -43,3 +45,4 @@ export function validateRequestBody(
     } else next();
   };
 }
+

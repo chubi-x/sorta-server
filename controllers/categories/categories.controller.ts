@@ -1,16 +1,18 @@
-import express, { NextFunction, Request, Response, Router } from "express";
+import express, { Request, Response, Router } from "express";
 import { usersRef } from "../../db/firebase";
 import { hasSession, validateRequestBody } from "../../middleware";
 import {
   CreateCategoryDto,
   UpdateCategoryAttributesDto,
-  UpdateCategoryBookmarksDto,
+  AddBookmarksToCategoryDto,
+  DeleteBookmarksFromCategoryDto,
 } from "./dto";
 import {
   getCategories,
   createCategory,
   updateCategoryAttributes,
-  updateCategoryBookmarks,
+  addBookmarksToCategory,
+  deleteBookmarksFromCategory,
   deleteCategory,
 } from "./services/index";
 
@@ -37,13 +39,22 @@ categoryRouter.patch(
     return await updateCategoryAttributes(req, res, usersRef);
   }
 );
-// update bookmarks
+// add bookmarks to category
 categoryRouter.patch(
-  "/:categoryId/bookmarks",
+  "/:categoryId/bookmarks/add",
   hasSession,
-  validateRequestBody(new UpdateCategoryBookmarksDto()),
+  validateRequestBody(new AddBookmarksToCategoryDto()),
   async (req: Request, res: Response) => {
-    return await updateCategoryBookmarks(req, res, usersRef);
+    return await addBookmarksToCategory(req, res, usersRef);
+  }
+);
+// remove bookmarks from category
+categoryRouter.patch(
+  "/:categoryId/bookmarks/delete",
+  hasSession,
+  validateRequestBody(new DeleteBookmarksFromCategoryDto()),
+  async (req: Request, res: Response) => {
+    return await deleteBookmarksFromCategory(req, res, usersRef);
   }
 );
 
