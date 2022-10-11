@@ -69,20 +69,21 @@ authRouter.get("/me", async (req: Request, res: Response) => {
       });
 
       const {
-          client: loggedClient,
-          accessToken,
-          refreshToken,
-          expiresIn,
-        } = await client.loginWithOAuth2({
-          code,
-          codeVerifier,
-          redirectUri: "http://localhost:3000/me",
-        }),
-        user = await loggedClient.v2.me({
-          "user.fields": ["profile_image_url"],
-        }),
-        // store access token and refresh token in firestore
-        userRef = usersRef.child(user.data.id);
+        client: loggedClient,
+        accessToken,
+        refreshToken,
+        expiresIn,
+      } = await client.loginWithOAuth2({
+        code,
+        codeVerifier,
+        redirectUri: "http://localhost:3000/me",
+      });
+
+      const user = await loggedClient.v2.me({
+        "user.fields": ["profile_image_url"],
+      });
+      // store access token and refresh token in firestore
+      const userRef = usersRef.child(user.data.id);
       // ONLY CREATE USER IF THEY DON'T EXIST
       await userRef.once("value").then(async (userSnapshot) => {
         if (userSnapshot.exists()) {
