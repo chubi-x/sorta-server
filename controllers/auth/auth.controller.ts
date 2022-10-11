@@ -43,9 +43,7 @@ authRouter.get("/authorize", async (req: Request, res: Response) => {
 authRouter.get("/me", async (req: Request, res: Response) => {
   try {
     if (req.session.oAuth) {
-      // get oauth token and verifier
       const { state, code } = req.query;
-      // retrieve oath_token_secret from session store
       const { codeVerifier, state: sessionState } = req.session.oAuth;
 
       // check if request was denied and do something
@@ -61,8 +59,6 @@ authRouter.get("/me", async (req: Request, res: Response) => {
           "Stored tokens didn't match! Try logging in again."
         );
       }
-      // get persistent access tokens
-      // create a client from temporary tokens
       const client = new TwitterApi({
         clientId: process.env.CLIENT_ID!,
         clientSecret: process.env.CLIENT_SECRET!,
@@ -82,7 +78,6 @@ authRouter.get("/me", async (req: Request, res: Response) => {
       const user = await loggedClient.v2.me({
         "user.fields": ["profile_image_url"],
       });
-      // store access token and refresh token in firestore
       const userRef = usersRef.child(user.data.id);
       // ONLY CREATE USER IF THEY DON'T EXIST
       await userRef.once("value").then(async (userSnapshot) => {
