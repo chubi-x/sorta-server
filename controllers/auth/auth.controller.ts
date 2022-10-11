@@ -95,6 +95,7 @@ authRouter.get("/me", async (req: Request, res: Response) => {
           await userRef.set(
             {
               username: user.data.username,
+              id: user.data.id,
               pfp: user.data.profile_image_url,
               accessToken,
               refreshToken,
