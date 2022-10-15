@@ -24,7 +24,7 @@ app.use(
       maxAge: threeDays,
       httpOnly: false,
     },
-    resave: true,
+    resave: false,
   })
 );
 // use cookie parser
@@ -33,11 +33,13 @@ app.use(cookieParser());
 // set CORS header
 app.use((req: Request, res: Response, next: NextFunction) => {
   // for vite dev environment
-  res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5173/");
+  res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5173");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With,Content-Type,Accept"
   );
+  res.header("Access-Control-Allow-Credentials");
   next();
 });
 // use routes

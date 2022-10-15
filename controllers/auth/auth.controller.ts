@@ -30,10 +30,11 @@ authRouter.get("/authorize", async (req: Request, res: Response) => {
     req.session.oAuth = {
       ...authLink,
     };
-    return ResponseHandler.requestSuccessful({
-      res,
-      payload: { url: req.session.oAuth.url },
-    });
+    // return ResponseHandler.requestSuccessful({
+    //   res,
+    //   payload: { url: req.session.oAuth.url },
+    // });
+    return res.redirect(req.session.oAuth.url);
   } catch (err) {
     console.log("could not generate auth link \n" + err);
     return ResponseHandler.serverError(res, "could not generate auth link");
@@ -54,6 +55,7 @@ authRouter.get("/me", async (req: Request, res: Response) => {
         );
       }
       if (state !== sessionState) {
+        console.log({ state, sessionState });
         return ResponseHandler.serverError(
           res,
           "Stored tokens didn't match! Try logging in again."
@@ -113,7 +115,7 @@ authRouter.get("/me", async (req: Request, res: Response) => {
           console.log("successfully created new user!");
           // save the user id to the session store
           req.session.userId = user.data.id;
-          return res.redirect(201, "/user");
+          return res.redirect("/user");
         }
       });
     } else {
