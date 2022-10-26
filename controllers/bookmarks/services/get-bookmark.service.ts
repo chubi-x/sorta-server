@@ -21,7 +21,7 @@ export default async function getBookmarks(
           bookmarks = await newTwitterClient.v2.bookmarks();
         return ResponseHandler.requestSuccessful({
           res,
-          payload: { bookmarks },
+          payload: { ...bookmarks.data },
           message: "Bookmarks retrieved successfully",
         });
       },
