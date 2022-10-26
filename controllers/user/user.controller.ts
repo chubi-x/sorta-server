@@ -17,11 +17,11 @@ userRouter.get("/", hasSession, async (req: Request, res: Response) => {
         ResponseHandler.requestSuccessful({
           res,
           payload: {
-            user: {
-              id: userId,
-              username: userData.username,
-              pfp: userData.pfp,
-            },
+            id: userId,
+            username: userData.username,
+            name: userData.name,
+            verified: userData.verified,
+            pfp: userData.pfp,
           },
           message: "User data retrieved successfully",
         });
