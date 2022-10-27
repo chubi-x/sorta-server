@@ -79,28 +79,16 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
       redirectUri: "http://127.0.0.1:5173/oauth/callback/url",
     });
 
+    // convert token expiration time to actual date
+    const tokenExpiresIn = new Date().getTime() + expiresIn * 1000;
+
     const user = await loggedClient.v2.me({
       "user.fields": ["profile_image_url", "verified", "name"],
     });
     const userRef = usersRef.child(user.data.id);
     // ONLY CREATE USER IF THEY DON'T EXIST
     await userRef.once("value").then(async (userSnapshot) => {
-      if (userSnapshot.exists()) {
-        // update their access and refresh tokens in the db
-        await userRef.update({
-          accessToken,
-          refreshToken,
-          tokenExpiresIn: expiresIn,
-        });
-        // save the user id to the session store
-        req.session.userId = user.data.id;
-        // return res.redirect("http://127.0.0.1:5173/user");
-        return ResponseHandler.requestSuccessful({
-          res,
-          message: "Authentication Successful!",
-        });
-      } else {
-        console.log(user.data.verified);
+      if (!userSnapshot.exists()) {
         await userRef.set(
           {
             username: user.data.username,
@@ -110,7 +98,7 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
             pfp: user.data.profile_image_url,
             accessToken,
             refreshToken,
-            tokenExpiresIn: expiresIn,
+            tokenExpiresIn,
           },
           (err) => {
             if (err) {
@@ -122,13 +110,20 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
         );
         //TODO: log new user created to logging service
         console.log("successfully created new user!");
-        // save the user id to the session store
-        req.session.userId = user.data.id;
-        return ResponseHandler.requestSuccessful({
-          res,
-          payload: { userId: user.data.id },
+      } else {
+        // update the user's tokens
+        await userRef.update({
+          accessToken,
+          refreshToken,
+          tokenExpiresIn,
         });
       }
+      // save the user id to the session store
+      req.session.userId = user.data.id;
+      return ResponseHandler.requestSuccessful({
+        res,
+        message: "Authentication Successful!",
+      });
     });
   } catch (err) {
     console.log(
