@@ -24,5 +24,5 @@ export async function refreshToken(userRef: Reference, user: any) {
     refreshToken,
     tokenExpiresIn,
   });
-  return { accessToken, client };
+  return client;
 }
