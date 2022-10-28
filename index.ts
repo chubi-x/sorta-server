@@ -15,7 +15,7 @@ const app: Express = express(),
   // cookie age
   threeDays = 1000 * 60 * 60 * 72;
 
-// set access control headings
+// set response headers headings
 app.use((req: Request, res: Response, next: NextFunction) => {
   // for vite dev environment
   res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5173");
@@ -25,6 +25,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     "Origin,X-Requested-With,Content-Type,Accept"
   );
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH");
+
+  // cache get request
+  const cachePeriod = 60 * 60; //one hour
+  if (
+    req.method == "GET" &&
+    (req.url == "/bookmarks" || req.url == "/user" || req.url == "/categories")
+  ) {
+    res.setHeader("Cache-Control", `public, max-age=${cachePeriod}`);
+  } else {
+    res.setHeader("Cache-Control", "no-store");
+  }
   next();
 });
 
@@ -42,18 +53,6 @@ app.use(
     resave: false,
   })
 );
-// create middleware to cache GET requests
-const setCache = (req: Request, res: Response, next: NextFunction) => {
-  // set cache period
-  const period = 60 * 60; //one hour
-  if (req.method == "GET") {
-    res.set("Cache-Control", `public, max-age=${period}`);
-  } else {
-    res.set("Cache-Control", "no-store");
-  }
-  next();
-};
-app.use(setCache);
 // use body parser
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
