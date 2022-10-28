@@ -20,18 +20,64 @@ export default async function getBookmarks(
         const expiresIn = user.tokenExpiresIn;
         const currentTime = new Date().getTime();
 
+        let client: TwitterApi = new TwitterApi();
         try {
           let bookmarks: TweetBookmarksTimelineV2Paginator;
           if (currentTime >= expiresIn) {
-            const { client } = await refreshToken(userRef, user);
+            client = await refreshToken(userRef, user);
             bookmarks = await client.v2.bookmarks();
           } else {
-            const newTwitterClient = new TwitterApi(user.accessToken);
-            bookmarks = await newTwitterClient.v2.bookmarks();
+            client = new TwitterApi(user.accessToken);
+            bookmarks = await client.v2.bookmarks();
           }
+          // save meta data to object
+          const meta = bookmarks.meta;
+          // TODO: retrieve all twitter bookmarks with their pagination
+          // implement pagination in this api to return them.
+          // TODO: cache all responses from twitter
+          // get tweet ids from bookmarks and save to a new array
+          const bookmarkData = bookmarks.data.data;
+          const bookmarkIds = bookmarkData.map((bookmark) => bookmark.id);
+          // get each tweet
+          const bookmarkTweets = await client.v2.tweets(bookmarkIds, {
+            "tweet.fields": ["attachments", "author_id", "entities"],
+            // "media.fields": ["url"]
+          });
+          // retrieve complete tweet info
+          const completeTweetInfo = await Promise.allSettled(
+            bookmarkTweets.data.map(
+              async ({ author_id, text, id, entities, attachments }) => {
+                // get the user info of each author
+                const author = (
+                  await client.v2.user(author_id!, {
+                    "user.fields": ["profile_image_url", "verified"],
+                  })
+                ).data;
+                // retrieve name, username, and pfp of tweet author
+                if (author_id === author.id) {
+                  // get tweet url and attachments
+                  const urls = entities?.urls;
+                  const attachmentIds = attachments?.media_keys;
+                  return {
+                    id,
+                    authorName: author.name,
+                    authorUsername: author.username,
+                    authorPfp: author.profile_image_url,
+                    authorId: author.id,
+                    verified: author.verified,
+                    text,
+                    urls,
+                    attachmentIds,
+                  };
+                }
+              }
+            )
+          );
+          console.log();
+
           return ResponseHandler.requestSuccessful({
             res,
-            payload: { ...bookmarks.data },
+            payload: { data: completeTweetInfo, meta },
             message: "Bookmarks retrieved successfully",
           });
         } catch (err) {
