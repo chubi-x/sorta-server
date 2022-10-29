@@ -147,7 +147,7 @@ export default async function getBookmarks(
                     authorUsername: author.username,
                     authorPfp: author.profile_image_url,
                     authorId: author.id,
-                    verified: author.verified,
+                    authorVerified: author.verified,
                     text,
                     urls,
                     attachmentIds,
