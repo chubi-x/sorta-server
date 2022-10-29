@@ -40,7 +40,7 @@ async function getUserBookmarkTweets(
   } else {
     // get each tweet
     bookmarkTweets = await client.v2.tweets(bookmarkIds, {
-      "tweet.fields": ["attachments", "author_id", "entities"],
+      "tweet.fields": ["attachments", "author_id", "entities", "created_at"],
       // "media.fields": ["url"]
     });
     // set in cache
@@ -130,7 +130,14 @@ export default async function getBookmarks(
           // retrieve complete tweet info
           const completeTweetInfo = await Promise.allSettled(
             bookmarkTweets.data.map(
-              async ({ author_id, text, id, entities, attachments }) => {
+              async ({
+                author_id,
+                text,
+                id,
+                entities,
+                attachments,
+                created_at,
+              }) => {
                 // get the user info of each author
                 const author = await getUserBookmarkTweetAuthorInfo(
                   client,
@@ -149,6 +156,7 @@ export default async function getBookmarks(
                     authorId: author.id,
                     authorVerified: author.verified,
                     text,
+                    createdAt: created_at,
                     urls,
                     attachmentIds,
                   };
