@@ -1,8 +1,95 @@
 import { Request, Response } from "express";
-import { TweetBookmarksTimelineV2Paginator, TwitterApi } from "twitter-api-v2";
+import NodeCache from "node-cache";
+
+import {
+  TweetBookmarksTimelineV2Paginator,
+  TweetV2LookupResult,
+  TwitterApi,
+  UserV2,
+} from "twitter-api-v2";
 import { Reference } from "@firebase/database-types";
 import { refreshToken, ResponseHandler } from "../../../services";
 
+// initialize bookmarks cache
+const bookmarkCache = new NodeCache();
+
+async function getUserBookmarks(client: TwitterApi) {
+  let bookmarks: TweetBookmarksTimelineV2Paginator;
+  // check if bookmarks is in cache
+  const cachedBookmarks: TweetBookmarksTimelineV2Paginator =
+    bookmarkCache.get("bookmarks")!;
+  if (cachedBookmarks) {
+    bookmarks = cachedBookmarks;
+  } else {
+    // retrieve value and set to cache
+    bookmarks = await client.v2.bookmarks();
+    bookmarkCache.set("bookmarks", bookmarks, 3600); //cache to live for an hour
+  }
+  return bookmarks;
+}
+async function getUserBookmarkTweets(
+  client: TwitterApi,
+  bookmarkIds: string[]
+) {
+  let bookmarkTweets: TweetV2LookupResult;
+  // check if bookmark tweets exist in cache
+  const cachedBookmarkTweets: TweetV2LookupResult =
+    bookmarkCache.get("bookmarkTweets")!;
+  if (cachedBookmarkTweets) {
+    bookmarkTweets = cachedBookmarkTweets;
+  } else {
+    // get each tweet
+    bookmarkTweets = await client.v2.tweets(bookmarkIds, {
+      "tweet.fields": ["attachments", "author_id", "entities"],
+      // "media.fields": ["url"]
+    });
+    // set in cache
+    bookmarkCache.set("bookmarkTweets", bookmarkTweets, 3600); //cache lives for an hour
+  }
+  return bookmarkTweets;
+}
+
+async function getUserBookmarkTweetAuthorInfo(
+  client: TwitterApi,
+  author_id: string
+) {
+  let author: UserV2;
+
+  // check cache for author info
+  const cachedAuthor: UserV2 = bookmarkCache.get(
+    `bookmarkTweetAuthor-${author_id}`
+  )!;
+  if (cachedAuthor) {
+    author = cachedAuthor;
+  } else {
+    author = (
+      await client.v2.user(author_id!, {
+        "user.fields": ["profile_image_url", "verified"],
+      })
+    ).data;
+    // set cache
+    bookmarkCache.set(`bookmarkTweetAuthor-${author_id}`, author, 3600); //cache lives for an hour
+  }
+  return author;
+}
+async function checkExpiredAndRefresh(
+  currentTime: number,
+  expiresIn: number,
+  userRef: Reference,
+  user: any
+) {
+  let client: TwitterApi = new TwitterApi();
+
+  let bookmarks: TweetBookmarksTimelineV2Paginator;
+  if (currentTime >= expiresIn) {
+    client = await refreshToken(userRef, user);
+    bookmarks = await getUserBookmarks(client);
+  } else {
+    client = new TwitterApi(user.accessToken);
+    bookmarks = await getUserBookmarks(client);
+  }
+  return { bookmarks, client };
+}
 export default async function getBookmarks(
   req: Request,
   res: Response,
@@ -17,19 +104,16 @@ export default async function getBookmarks(
         // get user access token
         const user = snapshot.val();
         // check if token has expired and refresh it
-        const expiresIn = user.tokenExpiresIn;
+        const expiresIn: number = user.tokenExpiresIn;
         const currentTime = new Date().getTime();
 
-        let client: TwitterApi = new TwitterApi();
         try {
-          let bookmarks: TweetBookmarksTimelineV2Paginator;
-          if (currentTime >= expiresIn) {
-            client = await refreshToken(userRef, user);
-            bookmarks = await client.v2.bookmarks();
-          } else {
-            client = new TwitterApi(user.accessToken);
-            bookmarks = await client.v2.bookmarks();
-          }
+          const { bookmarks, client } = await checkExpiredAndRefresh(
+            currentTime,
+            expiresIn,
+            userRef,
+            user
+          );
           // save meta data to object
           const meta = bookmarks.meta;
           // TODO: retrieve all twitter bookmarks with their pagination
@@ -38,21 +122,20 @@ export default async function getBookmarks(
           // get tweet ids from bookmarks and save to a new array
           const bookmarkData = bookmarks.data.data;
           const bookmarkIds = bookmarkData.map((bookmark) => bookmark.id);
-          // get each tweet
-          const bookmarkTweets = await client.v2.tweets(bookmarkIds, {
-            "tweet.fields": ["attachments", "author_id", "entities"],
-            // "media.fields": ["url"]
-          });
+
+          const bookmarkTweets = await getUserBookmarkTweets(
+            client,
+            bookmarkIds
+          );
           // retrieve complete tweet info
           const completeTweetInfo = await Promise.allSettled(
             bookmarkTweets.data.map(
               async ({ author_id, text, id, entities, attachments }) => {
                 // get the user info of each author
-                const author = (
-                  await client.v2.user(author_id!, {
-                    "user.fields": ["profile_image_url", "verified"],
-                  })
-                ).data;
+                const author = await getUserBookmarkTweetAuthorInfo(
+                  client,
+                  author_id!
+                );
                 // retrieve name, username, and pfp of tweet author
                 if (author_id === author.id) {
                   // get tweet url and attachments
@@ -73,7 +156,6 @@ export default async function getBookmarks(
               }
             )
           );
-          console.log();
 
           return ResponseHandler.requestSuccessful({
             res,
