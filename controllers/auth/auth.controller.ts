@@ -1,15 +1,14 @@
 import express, { Request, Response, Router } from "express";
 import dotenv from "dotenv";
-import NodeCache from "node-cache";
-import { TwitterApi, UserV2Result } from "twitter-api-v2";
+import { TwitterApi } from "twitter-api-v2";
 import { ResponseHandler } from "../../services";
 import { usersRef } from "../../db/firebase";
 import { userClient } from "../../TwitterClient";
 import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types";
 
-// initialize user cache
-const userCache = new NodeCache();
 const authRouter: Router = express.Router();
+
+const CALLBACK_URL = "http://127.0.0.1:5173/oauth/callback/url";
 
 // configure env variable
 dotenv.config();
@@ -21,24 +20,22 @@ authRouter.get("/", (req: Request, res: Response) => {
 authRouter.get("/authorize", async (req: Request, res: Response) => {
   try {
     const authLink: IOAuth2RequestTokenResult =
-      userClient.generateOAuth2AuthLink(
-        "http://127.0.0.1:5173/oauth/callback/url",
-        {
-          scope: [
-            "tweet.read",
-            "users.read",
-            "bookmark.read",
-            "bookmark.write",
-            "offline.access",
-          ],
-        }
-      );
+      userClient.generateOAuth2AuthLink(CALLBACK_URL, {
+        scope: [
+          "tweet.read",
+          "users.read",
+          "bookmark.read",
+          "bookmark.write",
+          "offline.access",
+        ],
+      });
     req.session.oAuth = {
       ...authLink,
     };
+
     return ResponseHandler.requestSuccessful({
       res,
-      payload: { oauth: authLink },
+      payload: { ...authLink },
     });
     // return res.redirect(req.session.oAuth.url);
   } catch (err) {
@@ -79,9 +76,8 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
     } = await client.loginWithOAuth2({
       code,
       codeVerifier,
-      redirectUri: "http://127.0.0.1:5173/oauth/callback/url",
+      redirectUri: CALLBACK_URL,
     });
-
     // convert token expiration time to actual date
     const tokenExpiresIn = new Date().getTime() + expiresIn * 1000;
 
