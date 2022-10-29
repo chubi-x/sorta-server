@@ -5,7 +5,7 @@ import { Reference } from "@firebase/database-types";
  * Function to refresh twitter access token
  * @param {Reference} userRef reference to firebase user object
  * @param user firebase user snapshot
- * @returns {object} Object containing twitter client and new access token
+ * @returns {TwitterApi}  twitter client
  */
 export async function refreshToken(userRef: Reference, user: any) {
   // create new client and refresh the token
