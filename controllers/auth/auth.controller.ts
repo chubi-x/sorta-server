@@ -14,21 +14,6 @@ const authRouter: Router = express.Router();
 // configure env variable
 dotenv.config();
 
-async function getUser(loggedClient: TwitterApi) {
-  let user: UserV2Result;
-
-  const cachedUser: UserV2Result = userCache.get("user")!;
-  if (cachedUser) {
-    user = cachedUser;
-  } else {
-    user = await loggedClient.v2.me({
-      "user.fields": ["profile_image_url", "verified", "name"],
-    });
-    //  set in cache
-    userCache.set("user", user, 3600); //cache lives for an hour
-  }
-  return user;
-}
 authRouter.get("/", (req: Request, res: Response) => {
   return res.redirect("/authorize");
 });
@@ -63,24 +48,24 @@ authRouter.get("/authorize", async (req: Request, res: Response) => {
 });
 
 authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
-  try {
-    const { oauthData, callbackParams } = req.body;
-    const { codeVerifier, state } = oauthData;
-    const { state: sessionState, code } = callbackParams;
+  const { oauthData, callbackParams } = req.body;
+  const { codeVerifier, state } = oauthData;
+  const { state: sessionState, code } = callbackParams;
 
-    // check if request was denied and do something
-    if (!codeVerifier || !state || !sessionState || !code) {
-      return ResponseHandler.serverError(
-        res,
-        "You denied the connection or your session expired! Try logging in again."
-      );
-    }
-    if (state !== sessionState) {
-      return ResponseHandler.serverError(
-        res,
-        "Stored tokens didn't match! Try logging in again."
-      );
-    }
+  // check if request was denied and do something
+  if (!codeVerifier || !state || !sessionState || !code) {
+    return ResponseHandler.serverError(
+      res,
+      "You denied the connection or your session expired! Try logging in again."
+    );
+  }
+  if (state !== sessionState) {
+    return ResponseHandler.serverError(
+      res,
+      "Stored tokens didn't match! Try logging in again."
+    );
+  }
+  try {
     const client = new TwitterApi({
       clientId: process.env.CLIENT_ID!,
       clientSecret: process.env.CLIENT_SECRET!,
@@ -101,7 +86,9 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
     const tokenExpiresIn = new Date().getTime() + expiresIn * 1000;
 
     // get user from cache
-    const user = await getUser(loggedClient);
+    const user = await loggedClient.v2.me({
+      "user.fields": ["profile_image_url", "verified", "name"],
+    });
     const userRef = usersRef.child(user.data.id);
     // ONLY CREATE USER IF THEY DON'T EXIST
     await userRef.once("value").then(async (userSnapshot) => {
@@ -143,13 +130,8 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
       });
     });
   } catch (err) {
-    console.log(
-      `Error accessing /oauth/complete endpoint. see below: \n ${err}`
-    );
-    return ResponseHandler.serverError(
-      res,
-      "An error occurred while logging you in. Please try again."
-    );
+    console.log(`error during twitter sign in ${err}`);
+    return ResponseHandler.serverError(res, "error during twitter sign in");
   }
 });
 
