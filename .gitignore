@@ -2,3 +2,5 @@
 /dist
 config.ts
 .env
+config/ca.key
+config/cert.key

@@ -1,16 +1,34 @@
 import express, { Request, Response, Router } from "express";
 import dotenv from "dotenv";
-import { TwitterApi } from "twitter-api-v2";
+import NodeCache from "node-cache";
+import { TwitterApi, UserV2Result } from "twitter-api-v2";
 import { ResponseHandler } from "../../services";
 import { usersRef } from "../../db/firebase";
 import { userClient } from "../../TwitterClient";
 import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types";
 
+// initialize user cache
+const userCache = new NodeCache();
 const authRouter: Router = express.Router();
 
 // configure env variable
 dotenv.config();
 
+async function getUser(loggedClient: TwitterApi) {
+  let user: UserV2Result;
+
+  const cachedUser: UserV2Result = userCache.get("user")!;
+  if (cachedUser) {
+    user = cachedUser;
+  } else {
+    user = await loggedClient.v2.me({
+      "user.fields": ["profile_image_url", "verified", "name"],
+    });
+    //  set in cache
+    userCache.set("user", user, 3600); //cache lives for an hour
+  }
+  return user;
+}
 authRouter.get("/", (req: Request, res: Response) => {
   return res.redirect("/authorize");
 });
@@ -82,9 +100,8 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
     // convert token expiration time to actual date
     const tokenExpiresIn = new Date().getTime() + expiresIn * 1000;
 
-    const user = await loggedClient.v2.me({
-      "user.fields": ["profile_image_url", "verified", "name"],
-    });
+    // get user from cache
+    const user = await getUser(loggedClient);
     const userRef = usersRef.child(user.data.id);
     // ONLY CREATE USER IF THEY DON'T EXIST
     await userRef.once("value").then(async (userSnapshot) => {
