@@ -45,24 +45,24 @@ authRouter.get("/authorize", async (req: Request, res: Response) => {
 });
 
 authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
-  const { oauthData, callbackParams } = req.body;
-  const { codeVerifier, state } = oauthData;
-  const { state: sessionState, code } = callbackParams;
-
-  // check if request was denied and do something
-  if (!codeVerifier || !state || !sessionState || !code) {
-    return ResponseHandler.serverError(
-      res,
-      "You denied the connection or your session expired! Try logging in again."
-    );
-  }
-  if (state !== sessionState) {
-    return ResponseHandler.serverError(
-      res,
-      "Stored tokens didn't match! Try logging in again."
-    );
-  }
   try {
+    const { oauthData, callbackParams } = req.body;
+    const { codeVerifier, state } = oauthData;
+    const { state: sessionState, code } = callbackParams;
+
+    // check if request was denied and do something
+    if (!codeVerifier || !state || !sessionState || !code) {
+      return ResponseHandler.serverError(
+        res,
+        "You denied the connection or your session expired! Try logging in again."
+      );
+    }
+    if (state !== sessionState) {
+      return ResponseHandler.serverError(
+        res,
+        "Stored tokens didn't match! Try logging in again."
+      );
+    }
     const client = new TwitterApi({
       clientId: process.env.CLIENT_ID!,
       clientSecret: process.env.CLIENT_SECRET!,
