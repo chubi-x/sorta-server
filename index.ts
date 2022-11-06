@@ -32,7 +32,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     req.method == "GET" &&
     (req.url == "/bookmarks" || req.url == "/user" || req.url == "/categories")
   ) {
-    res.setHeader("Cache-Control", `public, max-age=${cachePeriod}`);
+    res.setHeader("Cache-Control", `private, no-cache, max-age=${cachePeriod}`);
   } else {
     res.setHeader("Cache-Control", "no-store");
   }
