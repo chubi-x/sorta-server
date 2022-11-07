@@ -131,5 +131,11 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
   }
 });
 
+authRouter.post("/logout", (req: Request, res: Response) => {
+  req.session.destroy(() => {
+    res.setHeader("Clear-Site-Data", "*");
+  });
+});
+
 export { authRouter };
 
