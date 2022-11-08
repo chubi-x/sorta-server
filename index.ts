@@ -27,10 +27,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH");
 
   // cache get request
-  const cachePeriod = 60 * 60; //one hour
+  const cachePeriod = 20 * 60; //twenty minutes
   if (
     req.method == "GET" &&
-    (req.url == "/bookmarks" || req.url == "/user" || req.url == "/categories")
+    (req.url == "/bookmarks" || req.url == "/categories")
   ) {
     res.setHeader("Cache-Control", `private, no-cache, max-age=${cachePeriod}`);
   } else {
