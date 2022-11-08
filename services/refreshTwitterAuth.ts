@@ -7,7 +7,7 @@ import { Reference } from "@firebase/database-types";
  * @param user firebase user snapshot
  * @returns {TwitterApi}  twitter client
  */
-export async function refreshToken(userRef: Reference, user: any) {
+export async function refreshToken(userRef: Reference, user: User) {
   // create new client and refresh the token
   const newClient = new TwitterApi({
     clientId: process.env.CLIENT_ID!,
@@ -26,3 +26,4 @@ export async function refreshToken(userRef: Reference, user: any) {
   });
   return client;
 }
+
