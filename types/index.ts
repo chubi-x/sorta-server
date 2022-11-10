@@ -11,3 +11,13 @@ declare module "qs" {
     code: string;
   }
 }
+
+declare module "twitter-api-v2" {
+  interface TweetV2 {
+    author_pfp: string | undefined;
+    author_verified: boolean | undefined;
+    author_name: string | undefined;
+    author_username: string | undefined;
+  }
+}
+
