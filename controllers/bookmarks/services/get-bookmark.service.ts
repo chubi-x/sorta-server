@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import NodeCache from "node-cache";
 
 import {
   TweetBookmarksTimelineV2Paginator,
@@ -10,42 +9,29 @@ import {
 import { Reference } from "@firebase/database-types";
 import { refreshToken, ResponseHandler } from "../../../services";
 
-// initialize bookmarks cache
-const bookmarkCache = new NodeCache();
-
 async function getUserBookmarks(client: TwitterApi, user: User) {
   let bookmarksPaginatorArray: TweetBookmarksTimelineV2Paginator[] = [];
 
-  // check if bookmarks is in cache
-  const cachedBookmarks: TweetBookmarksTimelineV2Paginator[] =
-    bookmarkCache.get(user.id)!;
-  if (cachedBookmarks) {
-    bookmarksPaginatorArray = cachedBookmarks;
-  } else {
-    // retrieve value and set to cache
-    const bookmarks = await client.v2.bookmarks({
+  const bookmarks = await client.v2.bookmarks({
+    "tweet.fields": ["attachments", "entities", "created_at"],
+    "user.fields": ["profile_image_url", "username", "verified"],
+    expansions: ["author_id"],
+  });
+  bookmarksPaginatorArray.push(bookmarks);
+  // retrieve all bookmarks with pagination
+  let page = bookmarks;
+  while (true) {
+    const newBookmarks = await client.v2.bookmarks({
+      pagination_token: page.meta.next_token,
       "tweet.fields": ["attachments", "entities", "created_at"],
       "user.fields": ["profile_image_url", "username", "verified"],
       expansions: ["author_id"],
     });
-    bookmarksPaginatorArray.push(bookmarks);
-    // retrieve all bookmarks with pagination
-    let page = bookmarks;
-    while (true) {
-      const newBookmarks = await client.v2.bookmarks({
-        pagination_token: page.meta.next_token,
-        "tweet.fields": ["attachments", "entities", "created_at"],
-        "user.fields": ["profile_image_url", "username", "verified"],
-        expansions: ["author_id"],
-      });
-      bookmarksPaginatorArray.push(newBookmarks);
-      page = newBookmarks;
-      if (!page.meta.next_token) {
-        break;
-      }
+    bookmarksPaginatorArray.push(newBookmarks);
+    page = newBookmarks;
+    if (!page.meta.next_token) {
+      break;
     }
-
-    bookmarkCache.set(user.id, bookmarksPaginatorArray, 3600); //cache to live for an hour
   }
   return bookmarksPaginatorArray;
 }
