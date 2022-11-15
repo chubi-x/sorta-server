@@ -18,13 +18,16 @@ const app: Express = express(),
 // set response headers headings
 app.use((req: Request, res: Response, next: NextFunction) => {
   // for vite dev environment
-  res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5173");
+  res.setHeader("Access-Control-Allow-Origin", "http://192.168.1.9:5173");
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.header(
+  res.setHeader(
     "Access-Control-Allow-Headers",
-    "Origin,X-Requested-With,Content-Type,Accept"
+    "Origin,X-Requested-With,Content-Type,Accept,Access-Control-Request-Method, Access-Control-Request-Headers, ngrok-skip-browser-warning"
   );
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+  );
 
   // cache get request
   const cachePeriod = 20 * 60; //twenty minutes
