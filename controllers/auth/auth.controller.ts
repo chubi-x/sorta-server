@@ -1,4 +1,4 @@
-import express, { Request, Response, Router } from "express";
+import express, { NextFunction, Request, Response, Router } from "express";
 import dotenv from "dotenv";
 import { TwitterApi } from "twitter-api-v2";
 import { ResponseHandler } from "../../services";
@@ -8,7 +8,7 @@ import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types"
 
 const authRouter: Router = express.Router();
 
-const CALLBACK_URL = "http://127.0.0.1:5173/oauth/callback/url";
+const CALLBACK_URL = "http://192.168.1.9:5173/oauth/callback/url";
 
 // configure env variable
 dotenv.config();
@@ -85,6 +85,9 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
     const user = await loggedClient.v2.me({
       "user.fields": ["profile_image_url", "verified", "name"],
     });
+    // save the user id to the session store
+    req.session.userId = user.data.id;
+
     const userRef = usersRef.child(user.data.id);
     // ONLY CREATE USER IF THEY DON'T EXIST
     await userRef.once("value").then(async (userSnapshot) => {
@@ -118,11 +121,10 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
           tokenExpiresIn,
         });
       }
-      // save the user id to the session store
-      req.session.userId = user.data.id;
       return ResponseHandler.requestSuccessful({
         res,
         message: "Authentication Successful!",
+        payload: { id: user.data.id },
       });
     });
   } catch (err) {
@@ -131,11 +133,18 @@ authRouter.post("/oauth/complete", async (req: Request, res: Response) => {
   }
 });
 
-authRouter.post("/logout", (req: Request, res: Response) => {
-  req.session.destroy(() => {
-    res.setHeader("Clear-Site-Data", "*");
-  });
-});
+authRouter.post(
+  "/logout",
+  (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Clear-Site-Data", '"cache", "storage"');
+    next();
+  },
+  (req: Request, res: Response) => {
+    req.session.destroy(() => {
+      res.send("logged out");
+    });
+  }
+);
 
 export { authRouter };
 
