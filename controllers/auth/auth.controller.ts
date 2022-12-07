@@ -2,16 +2,15 @@ import express, { NextFunction, Request, Response, Router } from "express";
 import dotenv from "dotenv";
 import { TwitterApi } from "twitter-api-v2";
 import { ResponseHandler } from "../../services";
-import { usersRef } from "../../db/firebase";
+import { usersRef } from "../../firebase/firebase";
 import { userClient } from "../../TwitterClient";
 import { IOAuth2RequestTokenResult } from "twitter-api-v2/dist/types/auth.types";
+// configure env variable
+dotenv.config();
 
 const authRouter: Router = express.Router();
 
-const CALLBACK_URL = "http://192.168.1.9:5173/oauth/callback/url";
-
-// configure env variable
-dotenv.config();
+const CALLBACK_URL = `${process.env.FRONT_END_URL!}/oauth/callback/url`;
 
 authRouter.get("/", (req: Request, res: Response) => {
   return res.redirect("/authorize");
