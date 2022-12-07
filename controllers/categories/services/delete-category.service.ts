@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { Reference, DataSnapshot } from "@firebase/database-types";
 import { ResponseHandler } from "../../../services";
+import { cloudStorageBucket } from "../../../firebase/firebase";
+import { CreateCategoryDto } from "../dto";
 
 export async function deleteCategory(
   req: Request,
@@ -33,6 +35,24 @@ export async function deleteCategory(
     };
     await categoryRef.once("value", async (categorySnapshot) => {
       if (categorySnapshot.exists()) {
+        const category: CreateCategoryDto = categorySnapshot.val();
+        const categoryName = category.name;
+        try {
+          // delete the image from storage
+          const file = cloudStorageBucket.file(
+            `images/${userId}/categories/${categoryName}/image`
+          );
+          const existsArray = await file.exists();
+          if (existsArray[0]) {
+            await file.delete();
+          }
+        } catch (e) {
+          console.log(e);
+          return ResponseHandler.clientError(
+            res,
+            "Error deleting category image"
+          );
+        }
         // remove the category
         await categoryRef.remove((err) => {
           // TODO: log to logging service
