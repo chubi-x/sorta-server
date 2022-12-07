@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Reference } from "@firebase/database-types";
 import { ResponseHandler } from "../../../services";
+import { CreateCategoryDto } from "../dto";
 // require nanoid cause of typescript wahala
 const nanoid = require("nanoid");
 
@@ -16,12 +17,13 @@ export async function createCategory(
     // request body should contain name, description, image link (user will upload to firestore from FE), and object of tweet IDs.
     const categoryId = nanoid();
     const category = categoryRef.child(categoryId);
-    const { name, description, image } = req.body;
+    const body: CreateCategoryDto = req.body;
+    const { name, description, image } = body;
     await category.set(
       {
         name,
         description,
-        image,
+        image: image ? image : "",
       },
       (err) => {
         if (err) {
@@ -40,7 +42,7 @@ export async function createCategory(
       (snapshot) => {
         return ResponseHandler.requestSuccessful({
           res,
-          payload: { id: categoryId, data: snapshot.val() },
+          payload: { id: categoryId, ...snapshot.val() },
           status: 201,
           message: "Category created successfully",
         });
