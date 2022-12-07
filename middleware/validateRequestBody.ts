@@ -26,9 +26,9 @@ export function validateRequestBody(
       dto instanceof UpdateCategoryAttributesDto
     ) {
       const { name, description, image } = req.body;
-      dto.name = name;
-      dto.description = description;
-      dto.image = image;
+      name ? (dto.name = name) : null;
+      description ? (dto.description = description) : null;
+      image ? (dto.image = image) : null;
     } else if (dto instanceof AddBookmarksToCategoryDto) {
       const bookmarksToAdd: string[] = req.body.bookmarks;
       dto.bookmarksToAdd = bookmarksToAdd;
