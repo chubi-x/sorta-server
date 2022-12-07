@@ -8,7 +8,7 @@ import {
 } from "twitter-api-v2";
 import { Reference } from "@firebase/database-types";
 import { refreshToken, ResponseHandler } from "../../../services";
-
+import { bookmarkCache } from "../..";
 async function getUserBookmarks(client: TwitterApi, user: User) {
   let bookmarksPaginatorArray: TweetBookmarksTimelineV2Paginator[] = [];
 
@@ -34,6 +34,21 @@ async function getUserBookmarks(client: TwitterApi, user: User) {
     }
   }
   return bookmarksPaginatorArray;
+}
+async function getCachedBookmarksPaginatorArray(
+  client: TwitterApi,
+  user: User
+) {
+  let bookmarksPaginatorArray: TweetBookmarksTimelineV2Paginator[];
+  const cache: TweetBookmarksTimelineV2Paginator[] | undefined =
+    bookmarkCache.get(`${user.id}-bookmarks`);
+  if (!cache) {
+    bookmarksPaginatorArray = await getUserBookmarks(client, user);
+    bookmarkCache.set(`${user.id}-bookmarks`, bookmarksPaginatorArray, 300); //five minutes
+    return bookmarksPaginatorArray;
+  } else {
+    return cache;
+  }
 }
 function extractBookmarkTweets(
   bookmarksPaginatorArray: TweetBookmarksTimelineV2Paginator[]
@@ -61,14 +76,20 @@ async function refreshAndReturnBookmarks(
 ) {
   let client: TwitterApi = new TwitterApi();
 
-  let bookmarksPaginatorArray: TweetBookmarksTimelineV2Paginator[];
+  let bookmarksPaginatorArray: TweetBookmarksTimelineV2Paginator[] | undefined;
 
   if (currentTime >= expiresIn) {
     client = await refreshToken(userRef, user);
-    bookmarksPaginatorArray = await getUserBookmarks(client, user);
+    bookmarksPaginatorArray = await getCachedBookmarksPaginatorArray(
+      client,
+      user
+    );
   } else {
     client = new TwitterApi(user.accessToken);
-    bookmarksPaginatorArray = await getUserBookmarks(client, user);
+    bookmarksPaginatorArray = await getCachedBookmarksPaginatorArray(
+      client,
+      user
+    );
   }
   return bookmarksPaginatorArray;
 }

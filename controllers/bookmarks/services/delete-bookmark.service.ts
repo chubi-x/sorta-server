@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { TwitterApi } from "twitter-api-v2";
 import { Reference } from "@firebase/database-types";
 import { ResponseHandler } from "../../../services";
+import { bookmarkCache } from "../..";
 
 export default async function deleteBookmark(
   req: Request,
@@ -19,6 +20,7 @@ export default async function deleteBookmark(
         const accessToken = snapshot.val().accessToken;
         const newTwitterClient = new TwitterApi(accessToken);
         await newTwitterClient.v2.deleteBookmark(bookmarkedTweetId);
+        bookmarkCache.del(`${userId}-bookmarks`);
         return ResponseHandler.requestSuccessful({
           res,
           message: "Bookmark deleted successfully",
