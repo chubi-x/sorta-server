@@ -10,7 +10,7 @@ export async function addBookmarksToCategory(
     // user must have a session
     const userId = req.session.userId;
     const categoryId = req.params.categoryId;
-    const bookmarksToUpdate: string[] = req.body.bookmarks;
+    const bookmarksToUpdate: Bookmark[] = req.body.bookmarks;
     // get a ref to the bookmarks object
     const bookmarksRef = usersRef.child(`${userId}/bookmarks`);
     // Category must exist before any operations
@@ -23,16 +23,14 @@ export async function addBookmarksToCategory(
             "value",
             (bookmarksSnapshot) => {
               bookmarksToUpdate.forEach(async (bookmark) => {
-                const newBookmark = bookmarksRef.push();
-                newBookmark.set(
+                bookmarksRef.push(
                   {
-                    id: newBookmark.key,
                     categoryId,
-                    tweetId: bookmark,
+                    ...bookmark,
                   },
                   (err) => {
                     if (err) {
-                      // TODO: log to loggin service
+                      // TODO: log to logging service
                       console.log(
                         `Error creating bookmarks in category. see below: \n ${err}`
                       );
@@ -75,3 +73,4 @@ export async function addBookmarksToCategory(
     );
   }
 }
+
