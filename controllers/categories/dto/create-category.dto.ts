@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsUrl } from "class-validator";
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUrl,
+  ValidateIf,
+  isHexColor,
+} from "class-validator";
 export class CreateCategoryDto {
   @IsString()
   @IsNotEmpty()
@@ -10,6 +17,8 @@ export class CreateCategoryDto {
 
   @IsString()
   @IsUrl()
+  @ValidateIf((category) => !isHexColor(category.image))
   @IsOptional()
   image?: string;
 }
+
