@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from "express";
-import { usersRef } from "../../db/firebase";
+import { usersRef } from "../../firebase/firebase";
 import { hasSession } from "../../middleware";
 import { ResponseHandler } from "../../services";
 
