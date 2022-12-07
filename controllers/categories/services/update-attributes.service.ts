@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { Reference } from "@firebase/database-types";
 import { ResponseHandler } from "../../../services";
-import { UpdateCategoryAttributesDto } from "../dto";
+import { CreateCategoryDto, UpdateCategoryAttributesDto } from "../dto";
+import { cloudStorageBucket } from "../../../firebase/firebase";
 
 export async function updateCategoryAttributes(
   req: Request,
@@ -15,12 +16,22 @@ export async function updateCategoryAttributes(
 
     await categoryRef.once("value", async (categorySnapshot) => {
       if (categorySnapshot.exists()) {
+        const category: CreateCategoryDto = categorySnapshot.val();
         const { name, description, image } = req.body;
         const updateObject: UpdateCategoryAttributesDto = {};
 
-        // check for and update each attribute seperately
+        // check for and update each attribute separately
         if (name) {
           updateObject.name = name;
+          // change the location of the image file in cloud storage
+          const imageFile = cloudStorageBucket.file(
+            `images/${userId}/categories/${category.name}/image`
+          );
+
+          const existsArray = await imageFile.exists();
+          if (existsArray[0]) {
+            await imageFile.move(`images/${userId}/categories/${name}/image`);
+          }
         }
         if (description) {
           updateObject.description = description;
