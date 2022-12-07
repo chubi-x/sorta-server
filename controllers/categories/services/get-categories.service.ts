@@ -83,3 +83,57 @@ export async function getCategories(
   }
 }
 
+export async function getCategoryById(
+  req: Request,
+  res: Response,
+  usersRef: Reference
+) {
+  try {
+    const userId = req.session.userId;
+    const categoryId = req.params.categoryId;
+    const categoryRef = usersRef.child(`${userId}/categories/${categoryId}`);
+    const bookmarksRef = usersRef.child(`${userId}/bookmarks`);
+    const bookmarksArray: string[] = [];
+
+    await bookmarksRef.once(
+      "value",
+      (bookmarksSnapshot) => {
+        bookmarksSnapshot.forEach((bookmarkSnapshot) => {
+          if (bookmarkSnapshot.child("categoryId").val() === categoryId)
+            bookmarksArray.push(bookmarkSnapshot.val());
+        });
+      },
+      (errorObject) => {
+        // TODO: log to logging service
+        console.log(
+          `error accessing bookmarks \n ${errorObject.name} : ${errorObject.message}`
+        );
+      }
+    );
+    categoryRef.once(
+      "value",
+      (categorySnapshot) => {
+        return ResponseHandler.requestSuccessful({
+          res,
+          message: "Category retrieved successfully",
+          payload: {
+            ...categorySnapshot.val(),
+            bookmarks: [...bookmarksArray],
+          },
+        });
+      },
+      (err) => {
+        console.log(
+          `There was an error getting category ref in /categories/:categoryId. see error below \n ${err}`
+        );
+        return ResponseHandler.serverError(res, "Error retrieving category");
+      }
+    );
+  } catch (err) {
+    console.log(
+      `There was an error accessing get categories by id endpoint. see error below \n ${err}`
+    );
+    return ResponseHandler.serverError(res, "Error retrieving category");
+  }
+}
+

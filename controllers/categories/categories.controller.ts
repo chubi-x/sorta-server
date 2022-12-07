@@ -14,6 +14,7 @@ import {
   addBookmarksToCategory,
   deleteBookmarksFromCategory,
   deleteCategory,
+  getCategoryById,
 } from "./services";
 
 const categoryRouter: Router = express.Router();
@@ -21,6 +22,13 @@ const categoryRouter: Router = express.Router();
 categoryRouter.get("/", hasSession, async (req: Request, res: Response) => {
   return await getCategories(req, res, usersRef);
 });
+categoryRouter.get(
+  "/:categoryId",
+  hasSession,
+  async (req: Request, res: Response) => {
+    return await getCategoryById(req, res, usersRef);
+  }
+);
 
 categoryRouter.post(
   "/",
