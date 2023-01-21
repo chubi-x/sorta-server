@@ -9,7 +9,7 @@ import {
 import { Reference } from "@firebase/database-types";
 import { refreshToken, ResponseHandler } from "../../../services";
 import { bookmarkCache } from "../..";
-async function getUserBookmarks(client: TwitterApi, user: User) {
+async function getUserBookmarks(client: TwitterApi) {
   let bookmarksPaginatorArray: TweetBookmarksTimelineV2Paginator[] = [];
 
   const bookmarks = await client.v2.bookmarks({
@@ -43,7 +43,7 @@ async function getCachedBookmarksPaginatorArray(
   const cache: TweetBookmarksTimelineV2Paginator[] | undefined =
     bookmarkCache.get(`${user.id}-bookmarks`);
   if (!cache) {
-    bookmarksPaginatorArray = await getUserBookmarks(client, user);
+    bookmarksPaginatorArray = await getUserBookmarks(client);
     bookmarkCache.set(`${user.id}-bookmarks`, bookmarksPaginatorArray, 300); //five minutes
     return bookmarksPaginatorArray;
   } else {
