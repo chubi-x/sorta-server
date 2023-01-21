@@ -30,7 +30,14 @@ export async function updateCategoryAttributes(
 
           const existsArray = await imageFile.exists();
           if (existsArray[0]) {
-            await imageFile.move(`images/${userId}/categories/${name}/image`);
+            // update image location if new image is not provided
+            if (!image) {
+              const newLocation = `images/${userId}/categories/${name}/image`;
+              await imageFile.move(newLocation);
+              const newImage = cloudStorageBucket.file(newLocation);
+              await newImage.makePublic();
+              updateObject.image = newImage.publicUrl();
+            }
           }
         }
         if (description) {
