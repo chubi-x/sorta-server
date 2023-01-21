@@ -15,7 +15,7 @@ export async function deleteBookmarksFromCategory(
     // user must have a session
     const userId = req.session.userId;
     const categoryId = req.params.categoryId;
-    const bookmarksIdsToDelete: string[] = req.body.bookmarkIds;
+    const bookmarksToDelete: string[] = req.body.bookmarkIdsToDelete;
     // get a ref to the bookmarks object
     const bookmarksRef = usersRef.child(`${userId}/bookmarks`);
     // Category must exist before any operations
@@ -23,14 +23,13 @@ export async function deleteBookmarksFromCategory(
       .child(`${userId}/categories/${categoryId}`)
       .once("value", async (categorySnapshot) => {
         if (categorySnapshot.exists()) {
-          // push the bookmarks to the bookmarks object
           await bookmarksRef.once(
             "value",
             (bookmarksSnapshot) => {
               if (bookmarksSnapshot.exists()) {
                 // flag to track errors
                 let ERROR_FLAG = false;
-                bookmarksIdsToDelete.forEach(async (bookmarkId) => {
+                bookmarksToDelete.forEach(async (bookmarkId) => {
                   try {
                     if (bookmarksSnapshot.hasChild(bookmarkId)) {
                       await bookmarksRef.child(bookmarkId).remove((err) => {
@@ -100,3 +99,4 @@ export async function deleteBookmarksFromCategory(
     );
   }
 }
+
