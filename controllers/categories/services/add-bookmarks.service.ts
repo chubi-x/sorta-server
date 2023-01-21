@@ -23,24 +23,34 @@ export async function addBookmarksToCategory(
             "value",
             (bookmarksSnapshot) => {
               bookmarksToUpdate.forEach(async (bookmark) => {
-                bookmarksRef.push(
-                  {
-                    categoryId,
-                    ...bookmark,
-                  },
-                  (err) => {
-                    if (err) {
-                      // TODO: log to logging service
-                      console.log(
-                        `Error creating bookmarks in category. see below: \n ${err}`
-                      );
-                      return ResponseHandler.clientError(
-                        res,
-                        "Error creating bookmarks in category"
-                      );
-                    }
+                const bookmarkRef = bookmarksRef.push();
+                const bookmarkRefKey = bookmarkRef.key;
+                await bookmarkRef.once("value", async (snapshot) => {
+                  const bookmarkData = snapshot.val();
+                  if (
+                    !snapshot.exists() ||
+                    bookmarkData.categoryId !== categoryId
+                  ) {
+                    await bookmarkRef.set(
+                      {
+                        categoryId,
+                        ...bookmark,
+                      },
+                      (err) => {
+                        if (err) {
+                          // TODO: log to logging service
+                          console.log(
+                            `Error creating bookmarks in category. see below: \n ${err}`
+                          );
+                          return ResponseHandler.clientError(
+                            res,
+                            "Error creating bookmarks in category"
+                          );
+                        }
+                      }
+                    );
                   }
-                );
+                });
               });
               // return success message
               return ResponseHandler.requestSuccessful({

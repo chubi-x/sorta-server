@@ -30,10 +30,10 @@ export function validateRequestBody(
       description ? (dto.description = description) : null;
       image ? (dto.image = image) : null;
     } else if (dto instanceof AddBookmarksToCategoryDto) {
-      const bookmarksToAdd: string[] = req.body.bookmarks;
+      const bookmarksToAdd: Bookmark[] = req.body.bookmarks;
       dto.bookmarksToAdd = bookmarksToAdd;
     } else if (dto instanceof DeleteBookmarksFromCategoryDto) {
-      const bookmarkIdsToDelete: string[] = req.body.bookmarkIds;
+      const bookmarkIdsToDelete: string[] = req.body.bookmarkIdsToDelete;
       dto.bookmarkIdsToDelete = bookmarkIdsToDelete;
     }
     const validationErrors = await validate(dto, {
