@@ -2,7 +2,7 @@
   "name": "sorta-server",
   "version": "1.0.0",
   "description": "backend for sorta",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
     "build": "npx tsc",
