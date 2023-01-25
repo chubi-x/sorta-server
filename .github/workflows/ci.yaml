@@ -1,40 +1,40 @@
-name: Node.js CI
+# name: Node.js CI
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [16.x]
+#     strategy:
+#       matrix:
+#         node-version: [16.x]
 
-    steps:
-      - uses: actions/checkout@v3
+#     steps:
+#       - uses: actions/checkout@v3
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
-      - run: npm ci
-      - run: npm run build --if-present
-      - run: cd dist
+#       - name: Use Node.js ${{ matrix.node-version }}
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: ${{ matrix.node-version }}
+#           cache: "npm"
+#       - run: npm ci
+#       - run: npm run build --if-present
+#       - run: cd dist
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-southeast-2
+#       - name: Configure AWS Credentials
+#         uses: aws-actions/configure-aws-credentials@v1
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ap-southeast-2
 
-      - name: Deploy build files to S3 bucket
-        # - run: aws s3 sync . s3://codepipeline-ap-southeast-2-591886619004/sorta-pipeline/build --delete
-        run: |
-          aws deploy create-application --application-name sorta-server
-          aws deploy push --application-name sorta-server --s3-location s3://codepipeline-ap-southeast-2-591886619004/sorta-pipeline/build.zip --ignore-hidden-files
+#       - name: Deploy build files to S3 bucket
+#         # - run: aws s3 sync . s3://codepipeline-ap-southeast-2-591886619004/sorta-pipeline/build --delete
+#         run: |
+#           aws deploy create-application --application-name sorta-server
+#           aws deploy push --application-name sorta-server --s3-location s3://codepipeline-ap-southeast-2-591886619004/sorta-pipeline/build.zip --ignore-hidden-files
