@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir /home/ubuntu/sorta-server
-cd /home/ubuntu/sorta-server
+mkdir /home/ec2-user/sorta-server
+cd /home/ec2-user/sorta-server
 
 sudo npm install
