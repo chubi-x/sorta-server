@@ -34,4 +34,5 @@ jobs:
           aws-region: ap-southeast-2
 
       - name: Deploy build files to S3 bucket
-        run: aws deploy create-application --application-name sorta-server
+      - run: aws s3 sync . s3://codepipeline-ap-southeast-2-591886619004/sorta-pipeline/build --delete
+      # - run: aws deploy create-application --application-name sorta-server
