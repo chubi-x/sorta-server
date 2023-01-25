@@ -18,10 +18,10 @@ hooks:
   AfterInstall:
     - location: scripts/after_install.sh
       timeout: 300
-      runas: ec2user
+      runas: ec2-user
   # During the ApplicationInstall deployment lifecycle event, run the commands
   #   in the script specified in "location".
   ApplicationStart:
     - location: scripts/application_start.sh
       timeout: 300
-      runas: ec2user
+      runas: ec2-user
